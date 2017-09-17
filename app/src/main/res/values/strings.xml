@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">EDIINT AS2 (RFC 4130)</string>
+    <string name="action_settings">Settings</string>
+</resources>

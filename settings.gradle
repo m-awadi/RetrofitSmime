@@ -1,0 +1,1 @@
+include ':app', ':bcmail-jdk15on', ':resteasy-crypto'
