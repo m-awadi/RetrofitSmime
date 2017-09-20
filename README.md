@@ -1,5 +1,5 @@
 # RetrofitSmime
-Android app that show how to use resteasy crypto & spongycastle mail package to send an ecrypted mail over http
+Android app that show how to use resteasy crypto & spongycastle mail package to send an ecrypted mail over http, this project use Android Studio 2.3.3
 
 You could send signed & encrypted purchase order using this file '[pembeli.p12](https://github.com/dawud-tan/RetrofitSmime/raw/master/pembeli.p12)', the password is 'pembeli'
 
