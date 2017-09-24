@@ -1,11 +1,10 @@
-package org.jboss.resteasy.security;
-
-import org.jboss.resteasy.util.Base64;
+package retrofit2.converter;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -58,6 +57,6 @@ public final class PemUtils {
         byte[] keyBytes = new byte[dis.available()];
         dis.readFully(keyBytes);
         dis.close();
-        return new String(keyBytes);
+        return new String(keyBytes, StandardCharsets.UTF_8);
     }
 }

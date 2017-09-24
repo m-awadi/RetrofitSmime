@@ -13,7 +13,7 @@ import retrofit2.http.POST;
  */
 public interface ServiceContract {
     @POST("0e753acc-296d-425a-80f9-c67c1e0095c8")
-    Completable send(
+    Completable sendAsynchronously(
             @Header("AS2-From") String username,
             @Header("Disposition-Notification-To") String dispositionNotificationTo,
             @Header("Disposition-Notification-Options") String dispositionNotificationOptions,

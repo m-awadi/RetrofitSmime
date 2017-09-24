@@ -1,4 +1,4 @@
-package org.jboss.resteasy.security;
+package retrofit2.converter;
 
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 

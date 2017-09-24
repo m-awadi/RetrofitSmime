@@ -1,4 +1,4 @@
-package org.jboss.resteasy.security;
+package retrofit2.converter;
 
 import java.io.IOException;
 import java.io.InputStream;

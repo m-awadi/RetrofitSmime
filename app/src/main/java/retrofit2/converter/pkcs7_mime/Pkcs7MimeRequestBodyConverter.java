@@ -1,22 +1,20 @@
-package org.jboss.resteasy.security.smime;
+package retrofit2.converter.pkcs7_mime;
 
-import org.jboss.resteasy.security.BouncyIntegration;
-import org.jboss.resteasy.util.Base64;
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.spongycastle.cms.CMSEnvelopedDataStreamGenerator;
 import org.spongycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 import org.spongycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
+import org.spongycastle.mail.smime.SMIMEEnvelopedGenerator;
 import org.spongycastle.operator.OutputEncryptor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.security.cert.X509Certificate;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 
+import retrofit2.converter.BouncyIntegration;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -29,20 +27,20 @@ import okio.Okio;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public class EnvelopedConverter implements Interceptor {
+public class Pkcs7MimeRequestBodyConverter implements Interceptor {
 
     static {
         BouncyIntegration.init();
     }
 
     private X509Certificate recipientPublicKey;
-    private String str;
+    private byte[] str;
 
-    public EnvelopedConverter(X509Certificate recipientPublicKey) {
+    public Pkcs7MimeRequestBodyConverter(X509Certificate recipientPublicKey) {
         this.recipientPublicKey = recipientPublicKey;
     }
 
-    static MimeBodyPart createBodyPart(MediaType contentType, byte[] content) throws IOException, MessagingException {
+    public static MimeBodyPart createBodyPart(MediaType contentType, byte[] content) throws IOException, MessagingException {
         InternetHeaders ih = new InternetHeaders();
         ih.addHeader("Content-Type", contentType.toString());
         return new MimeBodyPart(ih, content);
@@ -57,29 +55,24 @@ public class EnvelopedConverter implements Interceptor {
         rb.writeTo(bs);
         bs.flush();
 
-        ByteArrayOutputStream baos = null;
-        OutputStream encrypted = null;
         try {
             OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(PKCSObjectIdentifiers.des_EDE3_CBC)
                     .setProvider("SC")
                     .build();
             JceKeyTransRecipientInfoGenerator infoGenerator = new JceKeyTransRecipientInfoGenerator(this.recipientPublicKey);
             infoGenerator.setProvider("SC");
-            CMSEnvelopedDataStreamGenerator gen = new CMSEnvelopedDataStreamGenerator();
+            SMIMEEnvelopedGenerator gen = new SMIMEEnvelopedGenerator();
             gen.addRecipientInfoGenerator(infoGenerator);
             MimeBodyPart _msg = createBodyPart(rb.contentType(), konten.toByteArray());
-            baos = new ByteArrayOutputStream();
-            encrypted = gen.open(baos, encryptor);
-            _msg.writeTo(encrypted);
-            encrypted.close();
-            byte[] bytes = baos.toByteArray();
-            str = Base64.encodeBytes(bytes, Base64.DO_BREAK_LINES);
+            MimeBodyPart output = gen.generate(_msg, encryptor);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            output.writeTo(baos);
+            str = baos.toByteArray();
 
             Request envelopedRequest = new Request.Builder()
                     .url(originalRequest.url())
                     .header("AS2-From", originalRequest.header("AS2-From"))
                     .header("Content-Disposition", "attachment; filename=\"smime.p7m\"")
-                    .header("Content-Transfer-Encoding", "base64")
                     .post(new RequestBody() {
                         @Override
                         public MediaType contentType() {
@@ -88,12 +81,12 @@ public class EnvelopedConverter implements Interceptor {
 
                         @Override
                         public long contentLength() {
-                            return str.length();
+                            return str.length;
                         }
 
                         @Override
                         public void writeTo(BufferedSink sink) throws IOException {
-                            sink.writeUtf8(str);
+                            sink.write(str);
                             sink.flush();
                         }
                     }).build();

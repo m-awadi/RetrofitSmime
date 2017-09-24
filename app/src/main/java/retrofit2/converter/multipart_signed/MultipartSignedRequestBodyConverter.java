@@ -1,6 +1,5 @@
-package org.jboss.resteasy.security.smime;
+package retrofit2.converter.multipart_signed;
 
-import org.jboss.resteasy.security.BouncyIntegration;
 import org.spongycastle.cms.SignerInfoGenerator;
 import org.spongycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder;
 import org.spongycastle.mail.smime.SMIMESignedGenerator;
@@ -12,6 +11,7 @@ import java.security.cert.X509Certificate;
 
 import javax.mail.internet.MimeMultipart;
 
+import retrofit2.converter.BouncyIntegration;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -19,12 +19,13 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
 import okio.Okio;
+import retrofit2.converter.pkcs7_mime.Pkcs7MimeRequestBodyConverter;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public class MultipartSignedConverter implements Interceptor {
+public class MultipartSignedRequestBodyConverter implements Interceptor {
     static {
         BouncyIntegration.init();
     }
@@ -33,7 +34,7 @@ public class MultipartSignedConverter implements Interceptor {
     private PrivateKey senderPrivateKey;
     private byte[] signedContent;
 
-    public MultipartSignedConverter(X509Certificate senderPublicKey, PrivateKey senderPrivateKey) {
+    public MultipartSignedRequestBodyConverter(X509Certificate senderPublicKey, PrivateKey senderPrivateKey) {
         this.senderPublicKey = senderPublicKey;
         this.senderPrivateKey = senderPrivateKey;
     }
@@ -52,7 +53,7 @@ public class MultipartSignedConverter implements Interceptor {
                     .setProvider("SC")
                     .build("SHA384WITHRSA", this.senderPrivateKey, this.senderPublicKey);
             gen.addSignerInfoGenerator(signer);
-            final MimeMultipart mp = gen.generate(EnvelopedConverter.createBodyPart(rb.contentType(), konten.toByteArray()));
+            final MimeMultipart mp = gen.generate(Pkcs7MimeRequestBodyConverter.createBodyPart(rb.contentType(), konten.toByteArray()));
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             mp.writeTo(baos);
             signedContent = baos.toByteArray();
