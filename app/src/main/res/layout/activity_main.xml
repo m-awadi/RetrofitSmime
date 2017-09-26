@@ -36,13 +36,13 @@
                     android:layout_height="wrap_content">
 
                     <EditText
-                        android:id="@+id/alamatDomain"
+                        android:id="@+id/alamatPenjual"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Alamat Domain"
+                        android:hint="Alamat Penjual"
                         android:inputType="text"
                         android:maxLines="1"
-                        android:text="http://192.168.1.3:10080/" />
+                        android:text="http://10.0.2.2:10080/" />
                 </android.support.design.widget.TextInputLayout>
 
                 <android.support.design.widget.TextInputLayout
@@ -67,7 +67,7 @@
                         android:id="@+id/storePasswordField"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Key store password"
+                        android:hint="Passphrase"
                         android:inputType="textPassword"
                         android:maxLines="1"
                         android:text="testas2" />
@@ -88,7 +88,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:enabled="false"
-                            android:hint="Key store path"
+                            android:hint="Sertifikat User"
                             android:inputType="textUri"
                             android:maxLines="1" />
                     </android.support.design.widget.TextInputLayout>
@@ -98,7 +98,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:elevation="8dp"
-                        android:text="(*.p12)" />
+                        android:text="Open" />
                 </LinearLayout>
 
 

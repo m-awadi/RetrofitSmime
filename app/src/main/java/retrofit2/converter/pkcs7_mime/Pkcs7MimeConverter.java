@@ -1,6 +1,5 @@
 package retrofit2.converter.pkcs7_mime;
 
-import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.spongycastle.asn1.smime.SMIMECapabilities;
 import org.spongycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 import org.spongycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
@@ -24,11 +23,8 @@ import okio.BufferedSink;
 import okio.Okio;
 import retrofit2.converter.BouncyIntegration;
 
-/**
- * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
- * @version $Revision: 1 $
- */
-public class Pkcs7MimeRequestBodyConverter implements Interceptor {
+//Content-Type: pkcs7-mime
+public class Pkcs7MimeConverter implements Interceptor {
 
     static {
         BouncyIntegration.init();
@@ -37,7 +33,7 @@ public class Pkcs7MimeRequestBodyConverter implements Interceptor {
     private X509Certificate recipientPublicKey;
     private MimeBodyPart output;
 
-    public Pkcs7MimeRequestBodyConverter(X509Certificate recipientPublicKey) {
+    public Pkcs7MimeConverter(X509Certificate recipientPublicKey) {
         this.recipientPublicKey = recipientPublicKey;
     }
 

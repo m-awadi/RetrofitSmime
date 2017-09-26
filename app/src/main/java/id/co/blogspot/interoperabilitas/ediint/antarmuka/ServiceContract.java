@@ -3,9 +3,9 @@ package id.co.blogspot.interoperabilitas.ediint.antarmuka;
 import java.util.List;
 
 import id.co.blogspot.interoperabilitas.ediint.domain.LineItem;
+import id.co.blogspot.interoperabilitas.ediint.domain.AS2MDN;
 import io.reactivex.Completable;
 import io.reactivex.Single;
-import okhttp3.ResponseBody;
 import retrofit2.http.Body;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
@@ -37,7 +37,7 @@ public interface ServiceContract {
             "AS2-Version: 1.1"
     })
     @POST("./")
-    Single<ResponseBody> callSynchronously(
+    Single<AS2MDN> callSynchronously(
             @Header("Message-Id") String messageId,
             @Header("Subject") String subject,
             @Header("Recipient-Address") String recipientAddress,

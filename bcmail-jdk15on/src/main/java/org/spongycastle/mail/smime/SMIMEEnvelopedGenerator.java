@@ -2,6 +2,7 @@ package org.spongycastle.mail.smime;
 
 import org.spongycastle.asn1.ASN1EncodableVector;
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
+import org.spongycastle.cms.CMSEnvelopedDataGenerator;
 import org.spongycastle.cms.CMSEnvelopedDataStreamGenerator;
 import org.spongycastle.cms.CMSException;
 import org.spongycastle.cms.RecipientInfoGenerator;
@@ -11,11 +12,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.activation.CommandMap;
 import javax.activation.MailcapCommandMap;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
 
 /**
  * General class for generating a pkcs7-mime message.
@@ -30,11 +34,35 @@ import javax.mail.internet.MimeBodyPart;
  *      MimeBodyPart mp = fact.generate(content, new JceCMSContentEncryptorBuilder(CMSAlgorithm.RC2_CBC, 40).setProvider("SC").build());
  * </pre>
  * <p>
- * <b>Note:</b> Most clients expect the MimeBodyPart to be in a MimeMultipart
+ * <b>Note:<b> Most clients expect the MimeBodyPart to be in a MimeMultipart
  * when it's sent.
  */
 public class SMIMEEnvelopedGenerator
         extends SMIMEGenerator {
+    public static final String DES_EDE3_CBC = CMSEnvelopedDataGenerator.DES_EDE3_CBC;
+    public static final String RC2_CBC = CMSEnvelopedDataGenerator.RC2_CBC;
+    public static final String IDEA_CBC = CMSEnvelopedDataGenerator.IDEA_CBC;
+    public static final String CAST5_CBC = CMSEnvelopedDataGenerator.CAST5_CBC;
+
+    public static final String AES128_CBC = CMSEnvelopedDataGenerator.AES128_CBC;
+    public static final String AES192_CBC = CMSEnvelopedDataGenerator.AES192_CBC;
+    public static final String AES256_CBC = CMSEnvelopedDataGenerator.AES256_CBC;
+
+    public static final String CAMELLIA128_CBC = CMSEnvelopedDataGenerator.CAMELLIA128_CBC;
+    public static final String CAMELLIA192_CBC = CMSEnvelopedDataGenerator.CAMELLIA192_CBC;
+    public static final String CAMELLIA256_CBC = CMSEnvelopedDataGenerator.CAMELLIA256_CBC;
+
+    public static final String SEED_CBC = CMSEnvelopedDataGenerator.SEED_CBC;
+
+    public static final String DES_EDE3_WRAP = CMSEnvelopedDataGenerator.DES_EDE3_WRAP;
+    public static final String AES128_WRAP = CMSEnvelopedDataGenerator.AES128_WRAP;
+    public static final String AES256_WRAP = CMSEnvelopedDataGenerator.AES256_WRAP;
+    public static final String CAMELLIA128_WRAP = CMSEnvelopedDataGenerator.CAMELLIA128_WRAP;
+    public static final String CAMELLIA192_WRAP = CMSEnvelopedDataGenerator.CAMELLIA192_WRAP;
+    public static final String CAMELLIA256_WRAP = CMSEnvelopedDataGenerator.CAMELLIA256_WRAP;
+    public static final String SEED_WRAP = CMSEnvelopedDataGenerator.SEED_WRAP;
+
+    public static final String ECDH_SHA1KDF = CMSEnvelopedDataGenerator.ECDH_SHA1KDF;
 
     private static final String ENCRYPTED_CONTENT_TYPE = "application/pkcs7-mime; name=\"smime.p7m\"; smime-type=enveloped-data";
 
@@ -53,6 +81,7 @@ public class SMIMEEnvelopedGenerator
     }
 
     private EnvelopedGenerator fact;
+    private List recipients = new ArrayList();
 
     /**
      * base constructor
@@ -78,6 +107,14 @@ public class SMIMEEnvelopedGenerator
             RecipientInfoGenerator recipientInfoGen)
             throws IllegalArgumentException {
         fact.addRecipientInfoGenerator(recipientInfoGen);
+    }
+
+    /**
+     * Use a BER Set to store the recipient information
+     */
+    public void setBerEncodeRecipients(
+            boolean berEncodeRecipientSet) {
+        fact.setBEREncodeRecipients(berEncodeRecipientSet);
     }
 
     /**
@@ -111,6 +148,24 @@ public class SMIMEEnvelopedGenerator
             OutputEncryptor encryptor)
             throws SMIMEException {
         return make(makeContentBodyPart(content), encryptor);
+    }
+
+    /**
+     * generate an enveloped object that contains an SMIME Enveloped
+     * object using the given provider from the contents of the passed in
+     * message
+     */
+    public MimeBodyPart generate(
+            MimeMessage message,
+            OutputEncryptor encryptor)
+            throws SMIMEException {
+        try {
+            message.saveChanges();      // make sure we're up to date.
+        } catch (MessagingException e) {
+            throw new SMIMEException("unable to save message", e);
+        }
+
+        return make(makeContentBodyPart(message), encryptor);
     }
 
     private static class WrappingIOException

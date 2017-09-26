@@ -1,6 +1,12 @@
 package org.spongycastle.mail.smime;
 
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
+import org.spongycastle.asn1.cryptopro.CryptoProObjectIdentifiers;
+import org.spongycastle.asn1.nist.NISTObjectIdentifiers;
+import org.spongycastle.asn1.oiw.OIWObjectIdentifiers;
+import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.spongycastle.asn1.teletrust.TeleTrusTObjectIdentifiers;
+import org.spongycastle.asn1.x9.X9ObjectIdentifiers;
 import org.spongycastle.cms.CMSAlgorithm;
 import org.spongycastle.cms.CMSException;
 import org.spongycastle.cms.CMSSignedDataStreamGenerator;
@@ -30,6 +36,7 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.internet.ContentType;
 import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 /**
@@ -70,7 +77,23 @@ import javax.mail.internet.MimeMultipart;
  */
 public class SMIMESignedGenerator
         extends SMIMEGenerator {
+    public static final String DIGEST_SHA1 = OIWObjectIdentifiers.idSHA1.getId();
+    public static final String DIGEST_MD5 = PKCSObjectIdentifiers.md5.getId();
+    public static final String DIGEST_SHA224 = NISTObjectIdentifiers.id_sha224.getId();
+    public static final String DIGEST_SHA256 = NISTObjectIdentifiers.id_sha256.getId();
+    public static final String DIGEST_SHA384 = NISTObjectIdentifiers.id_sha384.getId();
+    public static final String DIGEST_SHA512 = NISTObjectIdentifiers.id_sha512.getId();
+    public static final String DIGEST_GOST3411 = CryptoProObjectIdentifiers.gostR3411.getId();
+    public static final String DIGEST_RIPEMD128 = TeleTrusTObjectIdentifiers.ripemd128.getId();
+    public static final String DIGEST_RIPEMD160 = TeleTrusTObjectIdentifiers.ripemd160.getId();
+    public static final String DIGEST_RIPEMD256 = TeleTrusTObjectIdentifiers.ripemd256.getId();
 
+    public static final String ENCRYPTION_RSA = PKCSObjectIdentifiers.rsaEncryption.getId();
+    public static final String ENCRYPTION_DSA = X9ObjectIdentifiers.id_dsa_with_sha1.getId();
+    public static final String ENCRYPTION_ECDSA = X9ObjectIdentifiers.ecdsa_with_SHA1.getId();
+    public static final String ENCRYPTION_RSA_PSS = PKCSObjectIdentifiers.id_RSASSA_PSS.getId();
+    public static final String ENCRYPTION_GOST3410 = CryptoProObjectIdentifiers.gostR3410_94.getId();
+    public static final String ENCRYPTION_ECGOST3410 = CryptoProObjectIdentifiers.gostR3410_2001.getId();
     public static final Map RFC3851_MICALGS;
     public static final Map RFC5751_MICALGS;
     public static final Map STANDARD_MICALGS;
@@ -129,7 +152,6 @@ public class SMIMESignedGenerator
     private List _oldSigners = new ArrayList();
     private List _attributeCerts = new ArrayList();
     private Map _digests = new HashMap();
-
     /**
      * base constructor - default content transfer encoding 7bit
      */
@@ -181,10 +203,39 @@ public class SMIMESignedGenerator
     }
 
     /**
+     * Add a store of precalculated signers to the generator.
+     *
+     * @param signerStore store of signers
+     */
+    public void addSigners(
+            SignerInformationStore signerStore) {
+        Iterator it = signerStore.getSigners().iterator();
+
+        while (it.hasNext()) {
+            _oldSigners.add(it.next());
+        }
+    }
+
+    /**
      * @param sigInfoGen
      */
     public void addSignerInfoGenerator(SignerInfoGenerator sigInfoGen) {
         signerInfoGens.add(sigInfoGen);
+    }
+
+    public void addCertificates(
+            Store certStore) {
+        certStores.add(certStore);
+    }
+
+    public void addCRLs(
+            Store crlStore) {
+        crlStores.add(crlStore);
+    }
+
+    public void addAttributeCertificates(
+            Store certStore) {
+        attrCertStores.add(certStore);
     }
 
     private void addHashHeader(
@@ -281,10 +332,101 @@ public class SMIMESignedGenerator
         }
     }
 
+    /*
+     * at this point we expect our body part to be well defined - generate with data in the signature
+     */
+    private MimeBodyPart makeEncapsulated(
+            MimeBodyPart content)
+            throws SMIMEException {
+        try {
+            MimeBodyPart sig = new MimeBodyPart();
+
+            sig.setContent(new ContentSigner(content, true), ENCAPSULATED_SIGNED_CONTENT_TYPE);
+            sig.addHeader("Content-Type", ENCAPSULATED_SIGNED_CONTENT_TYPE);
+            sig.addHeader("Content-Disposition", "attachment; filename=\"smime.p7m\"");
+            sig.addHeader("Content-Description", "S/MIME Cryptographic Signed Data");
+            sig.addHeader("Content-Transfer-Encoding", encoding);
+
+            return sig;
+        } catch (MessagingException e) {
+            throw new SMIMEException("exception putting body part together.", e);
+        }
+    }
+
+    /**
+     * Return a map of oids and byte arrays representing the digests calculated on the content during
+     * the last generate.
+     *
+     * @return a map of oids (as String objects) and byte[] representing digests.
+     */
+    public Map getGeneratedDigests() {
+        return new HashMap(_digests);
+    }
+
     public MimeMultipart generate(
             MimeBodyPart content)
             throws SMIMEException {
         return make(makeContentBodyPart(content));
+    }
+
+    public MimeMultipart generate(
+            MimeMessage message)
+            throws SMIMEException {
+        try {
+            message.saveChanges();      // make sure we're up to date.
+        } catch (MessagingException e) {
+            throw new SMIMEException("unable to save message", e);
+        }
+
+        return make(makeContentBodyPart(message));
+    }
+
+    /**
+     * generate a signed message with encapsulated content
+     * <p>
+     * Note: doing this is strongly <b>not</b> recommended as it means a
+     * recipient of the message will have to be able to read the signature to read the
+     * message.
+     */
+    public MimeBodyPart generateEncapsulated(
+            MimeBodyPart content)
+            throws SMIMEException {
+        return makeEncapsulated(makeContentBodyPart(content));
+    }
+
+    public MimeBodyPart generateEncapsulated(
+            MimeMessage message)
+            throws SMIMEException {
+        try {
+            message.saveChanges();      // make sure we're up to date.
+        } catch (MessagingException e) {
+            throw new SMIMEException("unable to save message", e);
+        }
+
+        return makeEncapsulated(makeContentBodyPart(message));
+    }
+
+    /**
+     * Creates a certificate management message which is like a signed message with no content
+     * or signers but that still carries certificates and CRLs.
+     *
+     * @return a MimeBodyPart containing the certs and CRLs.
+     */
+    public MimeBodyPart generateCertificateManagement()
+            throws SMIMEException {
+        try {
+            MimeBodyPart sig = new MimeBodyPart();
+
+            sig.setContent(new ContentSigner(null, true), CERTIFICATE_MANAGEMENT_CONTENT);
+            sig.addHeader("Content-Type", CERTIFICATE_MANAGEMENT_CONTENT);
+            sig.addHeader("Content-Disposition", "attachment; filename=\"smime.p7c\"");
+            sig.addHeader("Content-Description", "S/MIME Certificate Management Message");
+            sig.addHeader("Content-Transfer-Encoding", encoding);
+
+            return sig;
+        } catch (MessagingException e) {
+            throw new SMIMEException("exception putting body part together.", e);
+        }
     }
 
     private class ContentSigner
