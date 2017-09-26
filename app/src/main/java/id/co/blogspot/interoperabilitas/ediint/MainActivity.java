@@ -15,6 +15,8 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 import com.nononsenseapps.filepicker.FilePickerActivity;
+import com.sun.mail.dsn.DispositionNotification;
+import com.sun.mail.dsn.MultipartReport;
 
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 
@@ -23,23 +25,30 @@ import java.io.InputStream;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
+
+import javax.mail.internet.InternetHeaders;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimePartDataSource;
+import javax.mail.util.ByteArrayDataSource;
 
 import id.co.blogspot.interoperabilitas.ediint.antarmuka.ServiceContract;
 import id.co.blogspot.interoperabilitas.ediint.domain.LineItem;
-import retrofit2.converter.PemUtils;
-import retrofit2.converter.pkcs7_mime.Pkcs7MimeRequestBodyConverter;
-import retrofit2.converter.multipart_signed.MultipartSignedRequestBodyConverter;
 import id.co.blogspot.interoperabilitas.ediint.utility.MyPickerActivity;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import keystore.KeyStoreManager;
 import keystore.LoginException;
 import okhttp3.OkHttpClient;
+import okhttp3.ResponseBody;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
+import retrofit2.converter.PemUtils;
 import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.converter.multipart_signed.MultipartSignedRequestBodyConverter;
+import retrofit2.converter.pkcs7_mime.Pkcs7MimeRequestBodyConverter;
 
 /**
  * Created by dawud_tan on 11/11/16.
@@ -133,19 +142,47 @@ public class MainActivity extends AppCompatActivity {
                 produks.add(new LineItem("IDR", "Listerine (Warner-Lambert)", "5", "5000", "1000"));
                 produks.add(new LineItem("IDR", "Oil of Olay ColorMoist Hazelnut No. 650 (P&G)", "1", "3000", "3000"));
                 String domain = alamatDomain.getText().toString();
+                Uri recipientAddress = Uri.parse(domain);
                 builder.baseUrl(domain.endsWith("/") ? domain : domain + "/")
                         .build()
                         .create(ServiceContract.class)
-                        .sendAsynchronously(username,
-                                "http://as2.amazonsedi.com/999US_AS2_20150715190948",
-                                "signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional,sha1",
-                                "http://as2.amazonsedi.com/999US_AS2_20150715190948", produks)
+                        .callSynchronously(
+                                "<github-phax-as2-lib-24092017231318+0700-1102@OpenAS2A_OID_OpenAS2B_OID>",
+                                "From OpenAS2A to OpenAS2B",
+                                recipientAddress.getScheme() + "://" + recipientAddress.getAuthority(),
+                                "OpenAS2A_OID",
+                                "OpenAS2B_OID",
+                                "as2msgs@openas2a.com",
+                                "as2msgs@openas2a.com",
+                                "signed-receipt-protocol=required, pkcs7-signature; signed-receipt-micalg=required, sha-1",
+                                produks)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.io())
-                        .subscribe(new Action() {
+                        .subscribe(new Consumer<ResponseBody>() {
                             @Override
-                            public void run() throws Exception {
-                                Snackbar.make(mCoordinatorLayout, "purchase order tersampaikan", Snackbar.LENGTH_LONG).show();
+                            public void accept(ResponseBody responseBody) throws Exception {
+                                try {
+                                    ByteArrayDataSource ds = new ByteArrayDataSource(responseBody.bytes(), responseBody.contentType().toString());
+                                    MimeMultipart body = new MimeMultipart(ds);
+                                    MimeBodyPart mbp = (MimeBodyPart) body.getBodyPart(0);
+                                    MultipartReport multipartReport = new MultipartReport(new MimePartDataSource(mbp));
+
+                                    String report = (String) multipartReport.getBodyPart(0).getContent();
+
+                                    DispositionNotification dn = new DispositionNotification(multipartReport.getBodyPart(1).getInputStream());
+                                    InternetHeaders ih = dn.getNotifications();
+                                    StringTokenizer dispTokens = new StringTokenizer(ih.getHeader("Disposition")[0], "/;:", false);
+                                    dispTokens.nextToken();
+                                    dispTokens.nextToken();
+
+                                    String status = dispTokens.nextToken();
+
+                                    String rcmic = ih.getHeader("Received-Content-MIC")[0].split(", ")[0];
+
+                                    Snackbar.make(mCoordinatorLayout, status + " " + rcmic + " " + report, Snackbar.LENGTH_LONG).show();
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                }
                             }
                         }, new Consumer<Throwable>() {
                             @Override

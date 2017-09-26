@@ -26,12 +26,24 @@ public class SMIMEGenerator {
         BASE_CIPHER_NAMES.put(CMSEnvelopedGenerator.AES256_CBC, "AES");
     }
 
+    protected boolean useBase64 = true;
     protected String encoding = "base64";  // default sets base64
 
     /**
      * base constructor
      */
     protected SMIMEGenerator() {
+    }
+
+    /**
+     * set the content-transfer-encoding for the CMS block (enveloped data, signature, etc...)  in the message.
+     *
+     * @param encoding the encoding to use, default "base64", use "binary" for a binary encoding.
+     */
+    public void setContentTransferEncoding(
+            String encoding) {
+        this.encoding = encoding;
+        this.useBase64 = Strings.toLowerCase(encoding).equals("base64");
     }
 
     /**

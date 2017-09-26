@@ -42,7 +42,7 @@
                         android:hint="Alamat Domain"
                         android:inputType="text"
                         android:maxLines="1"
-                        android:text="http://10.0.2.2:8080/api/" />
+                        android:text="http://192.168.1.3:10080/" />
                 </android.support.design.widget.TextInputLayout>
 
                 <android.support.design.widget.TextInputLayout
@@ -70,7 +70,7 @@
                         android:hint="Key store password"
                         android:inputType="textPassword"
                         android:maxLines="1"
-                        android:text="pembeli" />
+                        android:text="testas2" />
                 </android.support.design.widget.TextInputLayout>
 
                 <LinearLayout

@@ -1,6 +1,7 @@
 package retrofit2.converter.pkcs7_mime;
 
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.spongycastle.asn1.smime.SMIMECapabilities;
 import org.spongycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 import org.spongycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 import org.spongycastle.mail.smime.SMIMEEnvelopedGenerator;
@@ -14,7 +15,6 @@ import javax.mail.MessagingException;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 
-import retrofit2.converter.BouncyIntegration;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -22,6 +22,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
 import okio.Okio;
+import retrofit2.converter.BouncyIntegration;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -34,7 +35,7 @@ public class Pkcs7MimeRequestBodyConverter implements Interceptor {
     }
 
     private X509Certificate recipientPublicKey;
-    private byte[] str;
+    private MimeBodyPart output;
 
     public Pkcs7MimeRequestBodyConverter(X509Certificate recipientPublicKey) {
         this.recipientPublicKey = recipientPublicKey;
@@ -56,38 +57,47 @@ public class Pkcs7MimeRequestBodyConverter implements Interceptor {
         bs.flush();
 
         try {
-            OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(PKCSObjectIdentifiers.des_EDE3_CBC)
+            OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(SMIMECapabilities.dES_EDE3_CBC)
                     .setProvider("SC")
                     .build();
-            JceKeyTransRecipientInfoGenerator infoGenerator = new JceKeyTransRecipientInfoGenerator(this.recipientPublicKey);
-            infoGenerator.setProvider("SC");
+            JceKeyTransRecipientInfoGenerator infoGenerator = new JceKeyTransRecipientInfoGenerator(this.recipientPublicKey)
+                    .setProvider("SC");
             SMIMEEnvelopedGenerator gen = new SMIMEEnvelopedGenerator();
             gen.addRecipientInfoGenerator(infoGenerator);
+            gen.setContentTransferEncoding("binary");
             MimeBodyPart _msg = createBodyPart(rb.contentType(), konten.toByteArray());
-            MimeBodyPart output = gen.generate(_msg, encryptor);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            output.writeTo(baos);
-            str = baos.toByteArray();
+            output = gen.generate(_msg, encryptor);
 
-            Request envelopedRequest = new Request.Builder()
-                    .url(originalRequest.url())
-                    .header("AS2-From", originalRequest.header("AS2-From"))
+            Request envelopedRequest = originalRequest.newBuilder()
                     .header("Content-Disposition", "attachment; filename=\"smime.p7m\"")
                     .post(new RequestBody() {
                         @Override
                         public MediaType contentType() {
-                            return MediaType.parse("application/pkcs7-mime; smime-type=enveloped-data; name=\"smime.p7m\"");
+                            try {
+                                return MediaType.parse(output.getContentType());
+                            } catch (MessagingException e) {
+                                e.printStackTrace();
+                            }
+                            return null;
                         }
 
                         @Override
-                        public long contentLength() {
-                            return str.length;
+                        public long contentLength() throws IOException {
+                            try {
+                                return output.getSize();
+                            } catch (MessagingException e) {
+                                e.printStackTrace();
+                            }
+                            return -1;
                         }
 
                         @Override
                         public void writeTo(BufferedSink sink) throws IOException {
-                            sink.write(str);
-                            sink.flush();
+                            try {
+                                sink.writeAll(Okio.buffer(Okio.source(output.getInputStream())));
+                            } catch (MessagingException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }).build();
             return chain.proceed(envelopedRequest);

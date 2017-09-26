@@ -11,7 +11,6 @@ import java.security.cert.X509Certificate;
 
 import javax.mail.internet.MimeMultipart;
 
-import retrofit2.converter.BouncyIntegration;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -19,6 +18,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
 import okio.Okio;
+import retrofit2.converter.BouncyIntegration;
 import retrofit2.converter.pkcs7_mime.Pkcs7MimeRequestBodyConverter;
 
 /**
@@ -51,15 +51,14 @@ public class MultipartSignedRequestBodyConverter implements Interceptor {
             SMIMESignedGenerator gen = new SMIMESignedGenerator();
             SignerInfoGenerator signer = new JcaSimpleSignerInfoGeneratorBuilder()
                     .setProvider("SC")
-                    .build("SHA384WITHRSA", this.senderPrivateKey, this.senderPublicKey);
+                    .build("SHA1WITHRSA", this.senderPrivateKey, this.senderPublicKey);
             gen.addSignerInfoGenerator(signer);
+            gen.setContentTransferEncoding("binary");
             final MimeMultipart mp = gen.generate(Pkcs7MimeRequestBodyConverter.createBodyPart(rb.contentType(), konten.toByteArray()));
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             mp.writeTo(baos);
             signedContent = baos.toByteArray();
-            Request signedRequest = new Request.Builder()
-                    .url(originalRequest.url())
-                    .header("AS2-From", originalRequest.header("AS2-From"))
+            Request signedRequest = originalRequest.newBuilder()
                     .post(new RequestBody() {
                         @Override
                         public MediaType contentType() {

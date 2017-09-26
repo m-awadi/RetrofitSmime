@@ -7,9 +7,12 @@ android {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
         targetSdkVersion 26
-        versionCode 24
-        versionName "2.1.0"
+        versionCode 25
+        versionName "3.0.0"
         multiDexEnabled true
+    }
+    packagingOptions {
+        pickFirst  'META-INF/mailcap'
     }
 }
 dependencies {
@@ -29,5 +32,8 @@ dependencies {
     compile group: 'com.madgag.spongycastle', name: 'prov', version: '1.58.0.0'
     compile group: 'com.sun.mail', name: 'android-mail', version: '1.6.0'
     compile group: 'com.sun.mail', name: 'android-activation', version: '1.6.0'
+    compile(group: 'com.sun.mail', name: 'dsn', version: '1.6.0'){
+        exclude group: 'com.sun.mail', module: 'javax.mail'
+    }
     compile project(':bcmail-jdk15on')
 }
