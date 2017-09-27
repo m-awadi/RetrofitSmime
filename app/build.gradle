@@ -7,8 +7,8 @@ android {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
         targetSdkVersion 26
-        versionCode 26
-        versionName "3.1.0"
+        versionCode 27
+        versionName "3.1.1"
         multiDexEnabled true
     }
     packagingOptions {

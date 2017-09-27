@@ -138,11 +138,11 @@ public class MainActivity extends AppCompatActivity {
                                 "<github-phax-as2-lib-24092017231318+0700-1102@OpenAS2A_OID_OpenAS2B_OID>",
                                 "From OpenAS2A to OpenAS2B",
                                 recipientAddress.getScheme() + "://" + recipientAddress.getAuthority(),
-                                "OpenAS2A_OID",
-                                "OpenAS2B_OID",
-                                "as2msgs@openas2a.com",
-                                "as2msgs@openas2a.com",
-                                "signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional, SHA1",
+                                "OpenAS2A",
+                                "OpenAS2B",
+                                "OpenAS2 A email",
+                                "http://localhost:10080",
+                                "signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional, md5",
                                 produks)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.io())

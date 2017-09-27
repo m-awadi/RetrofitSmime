@@ -4,6 +4,7 @@ import com.sun.mail.dsn.DispositionNotification;
 import com.sun.mail.dsn.MultipartReport;
 
 import org.spongycastle.asn1.oiw.OIWObjectIdentifiers;
+import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.spongycastle.cms.SignerInfoGenerator;
 import org.spongycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder;
 import org.spongycastle.mail.smime.SMIMESigned;
@@ -77,7 +78,7 @@ public class MultipartSignedConverter implements Interceptor {
 
     private String calculateMIC(MimeBodyPart part) {
         try {
-            String micAlg = OIWObjectIdentifiers.idSHA1.getId();
+            String micAlg = PKCSObjectIdentifiers.md5.getId();
             MessageDigest md = MessageDigest.getInstance(micAlg, "SC");
             // convert the Mime data to a byte array, then to an InputStream
             ByteArrayOutputStream bOut = new ByteArrayOutputStream();
@@ -96,7 +97,7 @@ public class MultipartSignedConverter implements Interceptor {
             bOut.close();
             byte[] mic = digIn.getMessageDigest().digest();
             StringBuffer micResult = new StringBuffer(new String(Base64.encode(mic)));
-            micResult.append(", ").append("SHA1");
+            micResult.append(", ").append("md5");
             return micResult.toString();
 
         } catch (Exception ex) {
@@ -117,7 +118,7 @@ public class MultipartSignedConverter implements Interceptor {
             SMIMESignedGenerator gen = new SMIMESignedGenerator();
             SignerInfoGenerator signer = new JcaSimpleSignerInfoGeneratorBuilder()
                     .setProvider("SC")
-                    .build("SHA1WITHRSA", this.senderPrivateKey, this.senderPublicKey);//hardcoded digest algo
+                    .build("MD5WITHRSA", this.senderPrivateKey, this.senderPublicKey);//hardcoded digest algo
             gen.addSignerInfoGenerator(signer);
             gen.setContentTransferEncoding("binary");
             final MimeMultipart mp = gen.generate(Pkcs7MimeConverter.createBodyPart(rb.contentType(), konten.toByteArray()));

@@ -23,7 +23,7 @@ import okio.BufferedSink;
 import okio.Okio;
 import retrofit2.converter.BouncyIntegration;
 
-//Content-Type: pkcs7-mime
+//Content-Type: application/pkcs7-mime
 public class Pkcs7MimeConverter implements Interceptor {
 
     static {
