@@ -3,6 +3,8 @@ package retrofit2.converter.multipart_signed;
 import com.sun.mail.dsn.DispositionNotification;
 import com.sun.mail.dsn.MultipartReport;
 
+import org.spongycastle.asn1.ASN1ObjectIdentifier;
+import org.spongycastle.asn1.nist.NISTObjectIdentifiers;
 import org.spongycastle.asn1.oiw.OIWObjectIdentifiers;
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.spongycastle.cms.SignerInfoGenerator;
@@ -22,6 +24,7 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
 import java.util.StringTokenizer;
 
 import javax.mail.internet.InternetHeaders;
@@ -44,16 +47,34 @@ import retrofit2.converter.pkcs7_mime.Pkcs7MimeConverter;
 
 //Content-Type: multipart/signed
 public class MultipartSignedConverter implements Interceptor {
+    public static HashMap<String, String> SIGNING_ALGORITHM = new HashMap<>();
+
     static {
         BouncyIntegration.init();
+        //https://tools.ietf.org/html/rfc5751#section-2.2
+        //SignatureAlgorithmIdentifier
+        SIGNING_ALGORITHM.put("md5withRSA", "md5");
+        SIGNING_ALGORITHM.put("sha1withDSA", "sha1");
+        SIGNING_ALGORITHM.put("sha1withRSA", "sha1");
+        SIGNING_ALGORITHM.put("sha256withDSA", "sha256");
+        SIGNING_ALGORITHM.put("sha256withRSA", "sha256");
+        SIGNING_ALGORITHM.put("sha256withRSAandMGF1", "sha256");
     }
 
     private X509Certificate senderPublicKey;
     private PrivateKey senderPrivateKey;
     private byte[] signedContent;
+    private String signatureAlgorithm;
 
-    public MultipartSignedConverter(X509Certificate senderPublicKey, PrivateKey senderPrivateKey) {
+    public void setSignatureAlgorithm(String signatureAlgorithm) {
+        this.signatureAlgorithm = signatureAlgorithm;
+    }
+
+    public void setSenderPublicKey(X509Certificate senderPublicKey) {
         this.senderPublicKey = senderPublicKey;
+    }
+
+    public void setSenderPrivateKey(PrivateKey senderPrivateKey) {
         this.senderPrivateKey = senderPrivateKey;
     }
 
@@ -77,9 +98,15 @@ public class MultipartSignedConverter implements Interceptor {
     }
 
     private String calculateMIC(MimeBodyPart part) {
+        //https://tools.ietf.org/html/rfc5751#section-2.1
+        //DigestAlgorithmIdentifier
+        HashMap<String, ASN1ObjectIdentifier> algoritmaDigest = new HashMap<>();
+        algoritmaDigest.put("md5", PKCSObjectIdentifiers.md5);
+        algoritmaDigest.put("sha1", OIWObjectIdentifiers.idSHA1);
+        algoritmaDigest.put("sha256", NISTObjectIdentifiers.id_sha256);
         try {
-            String micAlg = PKCSObjectIdentifiers.md5.getId();
-            MessageDigest md = MessageDigest.getInstance(micAlg, "SC");
+            String micAlg = SIGNING_ALGORITHM.get(signatureAlgorithm);
+            MessageDigest md = MessageDigest.getInstance(algoritmaDigest.get(micAlg).getId(), "SC");
             // convert the Mime data to a byte array, then to an InputStream
             ByteArrayOutputStream bOut = new ByteArrayOutputStream();
             // Canonicalize the data if not binary content transfer encoding
@@ -97,7 +124,7 @@ public class MultipartSignedConverter implements Interceptor {
             bOut.close();
             byte[] mic = digIn.getMessageDigest().digest();
             StringBuffer micResult = new StringBuffer(new String(Base64.encode(mic)));
-            micResult.append(", ").append("md5");
+            micResult.append(", ").append(micAlg);
             return micResult.toString();
 
         } catch (Exception ex) {
@@ -118,7 +145,7 @@ public class MultipartSignedConverter implements Interceptor {
             SMIMESignedGenerator gen = new SMIMESignedGenerator();
             SignerInfoGenerator signer = new JcaSimpleSignerInfoGeneratorBuilder()
                     .setProvider("SC")
-                    .build("MD5WITHRSA", this.senderPrivateKey, this.senderPublicKey);//hardcoded digest algo
+                    .build(this.signatureAlgorithm, this.senderPrivateKey, this.senderPublicKey);//hardcoded digest algo
             gen.addSignerInfoGenerator(signer);
             gen.setContentTransferEncoding("binary");
             final MimeMultipart mp = gen.generate(Pkcs7MimeConverter.createBodyPart(rb.contentType(), konten.toByteArray()));
@@ -150,6 +177,7 @@ public class MultipartSignedConverter implements Interceptor {
             MimeMultipart body = new MimeMultipart(ds);
             MimeBodyPart mbp = (MimeBodyPart) body.getBodyPart(0);
             MultipartReport multipartReport = new MultipartReport(new MimePartDataSource(mbp));
+
             StringBuilder sb = new StringBuilder("{\"text\":\"");
             sb.append(multipartReport.getBodyPart(0).getContent());
             sb.append("\",\"action\":\"");

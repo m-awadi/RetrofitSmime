@@ -88,7 +88,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:enabled="false"
-                            android:hint="Sertifikat User"
+                            android:hint="Sertifikat User (*.p12)"
                             android:inputType="textUri"
                             android:maxLines="1" />
                     </android.support.design.widget.TextInputLayout>
@@ -100,7 +100,6 @@
                         android:elevation="8dp"
                         android:text="Open" />
                 </LinearLayout>
-
 
                 <android.support.design.widget.TextInputLayout
                     android:layout_width="match_parent"
@@ -116,10 +115,19 @@
                         android:maxLines="1" />
                 </android.support.design.widget.TextInputLayout>
 
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/contentEncryptionAlgorithmIdentifierField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/encryptionPrompt" />
+
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/signatureAlgorithmIdentifierField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/signingPrompt" />
             </LinearLayout>
-
         </android.support.v4.widget.NestedScrollView>
-
 
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/fab"

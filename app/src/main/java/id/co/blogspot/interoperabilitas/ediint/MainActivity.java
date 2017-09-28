@@ -8,6 +8,8 @@ import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 
 import com.google.android.gms.ads.AdRequest;
@@ -27,11 +29,11 @@ import id.co.blogspot.interoperabilitas.ediint.antarmuka.ServiceContract;
 import id.co.blogspot.interoperabilitas.ediint.domain.AS2MDN;
 import id.co.blogspot.interoperabilitas.ediint.domain.LineItem;
 import id.co.blogspot.interoperabilitas.ediint.utility.MyPickerActivity;
+import id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import keystore.KeyStoreManager;
-import keystore.LoginException;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
@@ -51,10 +53,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private CoordinatorLayout mCoordinatorLayout;
+    private NoDefaultSpinner encAlgo, signAlgo;
     private EditText storePasswordField, storeFileField, keyAliasField, namaProduk, alamatPenjual;
+    private Button storeFileButton;
     private Retrofit.Builder builder;
     private String username;
     private List<LineItem> produks;
+    private MultipartSignedConverter multipartSignedConverter;
+    private Pkcs7MimeConverter pkcs7MimeConverter;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -70,28 +76,9 @@ public class MainActivity extends AppCompatActivity {
                 mKeyStoreManager.loadKeyStore(getContentResolver().openInputStream(uri), storePasswordField.getText().toString().toCharArray());
                 storeFileField.setText(uri.toString());
                 keyAliasField.setText(mKeyStoreManager.getUsername());
-                try {
-                    this.username = keyAliasField.getText().toString();
-                    OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-                    httpClient.addInterceptor(new MultipartSignedConverter(mKeyStoreManager.getPublicKey(), mKeyStoreManager.getPrivateKey("".toCharArray())));
-                    InputStream certIs = MainActivity.class.getResourceAsStream("/penjual.pub");
-                    try {
-                        httpClient.addInterceptor(new Pkcs7MimeConverter(PemUtils.decodeCertificate(certIs)));
-                    } catch (Exception ex) {
-                    } finally {
-                        try {
-                            certIs.close();
-                            certIs = null;
-                        } catch (IOException ex) {
-                        }
-                    }
-                    builder = new Retrofit.Builder()
-                            .client(httpClient.build())
-                            .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-                            .addConverterFactory(GsonConverterFactory.create());
-                } catch (LoginException ex) {
-                    Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
-                }
+                this.username = keyAliasField.getText().toString();
+                multipartSignedConverter.setSenderPublicKey(mKeyStoreManager.getPublicKey());
+                multipartSignedConverter.setSenderPrivateKey(mKeyStoreManager.getPrivateKey("".toCharArray()));
             } catch (Exception e) {
                 Snackbar.make(mCoordinatorLayout, e.getMessage(), Snackbar.LENGTH_LONG).show();
             }
@@ -112,7 +99,8 @@ public class MainActivity extends AppCompatActivity {
         storeFileField = findViewById(R.id.storeFileField);
         alamatPenjual = findViewById(R.id.alamatPenjual);
         namaProduk = findViewById(R.id.namaProduk);
-        findViewById(R.id.storeFileButton).setOnClickListener(new View.OnClickListener() {
+        storeFileButton = findViewById(R.id.storeFileButton);
+        storeFileButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent i = new Intent(MainActivity.this, MyPickerActivity.class);
@@ -121,47 +109,100 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         keyAliasField = findViewById(R.id.keyAliasField);
+
+        ArrayAdapter<String> encAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, Pkcs7MimeConverter.ENCRYPTION_ALGORITHM.keySet().toArray(new String[Pkcs7MimeConverter.ENCRYPTION_ALGORITHM.keySet().size()]));
+        encAlgo = findViewById(R.id.contentEncryptionAlgorithmIdentifierField);
+        encAlgo.setAdapter(encAdapter);
+
+        ArrayAdapter<String> signAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, MultipartSignedConverter.SIGNING_ALGORITHM.keySet().toArray(new String[MultipartSignedConverter.SIGNING_ALGORITHM.keySet().size()]));
+        signAlgo = findViewById(R.id.signatureAlgorithmIdentifierField);
+        signAlgo.setAdapter(signAdapter);
+
+        multipartSignedConverter = new MultipartSignedConverter();
+        pkcs7MimeConverter = new Pkcs7MimeConverter();
+
+        InputStream certIs = MainActivity.class.getResourceAsStream("/penjual.pub");
+        try {
+            pkcs7MimeConverter.setRecipientPublicKey(PemUtils.decodeCertificate(certIs));
+        } catch (Exception ex) {
+        } finally {
+            try {
+                certIs.close();
+                certIs = null;
+            } catch (IOException ex) {
+            }
+        }
+        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+        //Purchase Order is signed using sender Priv&Pub
+        httpClient.addInterceptor(multipartSignedConverter);
+
+        //the signed PO then encrypted using recipient Pub
+        httpClient.addInterceptor(pkcs7MimeConverter);
+
+        builder = new Retrofit.Builder()
+                .client(httpClient.build())
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create());
         findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                produks = new ArrayList<>();
-                produks.add(new LineItem("IDR", namaProduk.getText().toString() + " (Kainos Capital)", "4", "8000", "2000"));
-                produks.add(new LineItem("IDR", "Gillette Venus Razors (P&G)", "3", "12000", "4000"));
-                produks.add(new LineItem("IDR", "Listerine (Warner-Lambert)", "5", "5000", "1000"));
-                produks.add(new LineItem("IDR", "Oil of Olay ColorMoist Hazelnut No. 650 (P&G)", "1", "3000", "3000"));
-                String domain = alamatPenjual.getText().toString();
-                Uri recipientAddress = Uri.parse(domain);
-                builder.baseUrl(domain.endsWith("/") ? domain : domain + "/")
-                        .build()
-                        .create(ServiceContract.class)
-                        .callSynchronously(
-                                "<github-phax-as2-lib-24092017231318+0700-1102@OpenAS2A_OID_OpenAS2B_OID>",
-                                "From OpenAS2A to OpenAS2B",
-                                recipientAddress.getScheme() + "://" + recipientAddress.getAuthority(),
-                                "OpenAS2A",
-                                "OpenAS2B",
-                                "OpenAS2 A email",
-                                "http://localhost:10080",
-                                "signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional, md5",
-                                produks)
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeOn(Schedulers.io())
-                        .subscribe(new Consumer<AS2MDN>() {
-                            @Override
-                            public void accept(AS2MDN as2MDN) throws Exception {
-                                try {
-                                    as2MDN.validateMIC();
-                                    Snackbar.make(mCoordinatorLayout, "MIC is matched, received MIC:  " + as2MDN.returnMIC, Snackbar.LENGTH_LONG).show();
-                                } catch (Exception ex) {
-                                    Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
+                try {
+                    if (storeFileField.getText().toString().trim().length() < 1) {
+                        storeFileButton.requestFocus();
+                        throw new Exception("Sertifikat belum dimuat");
+                    }
+                    if (encAlgo.getSelectedItem() == null) {
+                        encAlgo.requestFocus();
+                        throw new Exception("Algoritma Enkripsi belum dipilih");
+                    }
+                    if (signAlgo.getSelectedItem() == null) {
+                        signAlgo.requestFocus();
+                        throw new Exception("Algoritma Tanda Tangan belum dipilih");
+                    }
+                    pkcs7MimeConverter.setEncryptionOID(encAlgo.getSelectedItem());
+                    multipartSignedConverter.setSignatureAlgorithm(signAlgo.getSelectedItem().toString());
+
+                    produks = new ArrayList<>();
+                    produks.add(new LineItem("IDR", namaProduk.getText().toString() + " (Kainos Capital)", "4", "8000", "2000"));
+                    produks.add(new LineItem("IDR", "Gillette Venus Razors (P&G)", "3", "12000", "4000"));
+                    produks.add(new LineItem("IDR", "Listerine (Warner-Lambert)", "5", "5000", "1000"));
+                    produks.add(new LineItem("IDR", "Oil of Olay ColorMoist Hazelnut No. 650 (P&G)", "1", "3000", "3000"));
+                    String domain = alamatPenjual.getText().toString();
+                    Uri recipientAddress = Uri.parse(domain);
+                    builder.baseUrl(domain.endsWith("/") ? domain : domain + "/")
+                            .build()
+                            .create(ServiceContract.class)
+                            .callSynchronously(
+                                    "<github-phax-as2-lib-24092017231318+0700-1102@OpenAS2A_OID_OpenAS2B_OID>",
+                                    "From OpenAS2A to OpenAS2B",
+                                    recipientAddress.getScheme() + "://" + recipientAddress.getAuthority(),
+                                    "OpenAS2A",
+                                    "OpenAS2B",
+                                    "OpenAS2 A email",
+                                    "http://localhost:10080",
+                                    "signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional, " + MultipartSignedConverter.SIGNING_ALGORITHM.get(signAlgo.getSelectedItem()),
+                                    produks)
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribeOn(Schedulers.io())
+                            .subscribe(new Consumer<AS2MDN>() {
+                                @Override
+                                public void accept(AS2MDN as2MDN) throws Exception {
+                                    try {
+                                        as2MDN.validateMIC();
+                                        Snackbar.make(mCoordinatorLayout, "MIC is matched, received MIC:  " + as2MDN.returnMIC, Snackbar.LENGTH_LONG).show();
+                                    } catch (Exception ex) {
+                                        Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
+                                    }
                                 }
-                            }
-                        }, new Consumer<Throwable>() {
-                            @Override
-                            public void accept(Throwable throwable) throws Exception {
-                                Snackbar.make(mCoordinatorLayout, throwable.getMessage(), Snackbar.LENGTH_LONG).show();
-                            }
-                        });
+                            }, new Consumer<Throwable>() {
+                                @Override
+                                public void accept(Throwable throwable) throws Exception {
+                                    Snackbar.make(mCoordinatorLayout, throwable.getMessage(), Snackbar.LENGTH_LONG).show();
+                                }
+                            });
+                } catch (Exception ex) {
+                    Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
+                }
             }
         });
     }
