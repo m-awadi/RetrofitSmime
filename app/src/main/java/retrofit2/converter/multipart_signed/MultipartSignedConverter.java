@@ -11,19 +11,18 @@ import org.spongycastle.cms.SignerInfoGenerator;
 import org.spongycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder;
 import org.spongycastle.mail.smime.SMIMESigned;
 import org.spongycastle.mail.smime.SMIMESignedGenerator;
-import org.spongycastle.mail.smime.util.CRLFOutputStream;
 import org.spongycastle.util.encoders.Base64;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.DigestInputStream;
+import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
@@ -31,6 +30,7 @@ import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimePartDataSource;
+import javax.mail.internet.MimeUtility;
 import javax.mail.util.ByteArrayDataSource;
 
 import okhttp3.Interceptor;
@@ -43,6 +43,7 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
 import retrofit2.converter.BouncyIntegration;
+import retrofit2.converter.NullOutputStream;
 import retrofit2.converter.pkcs7_mime.Pkcs7MimeConverter;
 
 //Content-Type: multipart/signed
@@ -54,17 +55,34 @@ public class MultipartSignedConverter implements Interceptor {
         //https://tools.ietf.org/html/rfc5751#section-2.2
         //SignatureAlgorithmIdentifier
         SIGNING_ALGORITHM.put("md5withRSA", "md5");
-        SIGNING_ALGORITHM.put("sha1withDSA", "sha1");
         SIGNING_ALGORITHM.put("sha1withRSA", "sha1");
-        SIGNING_ALGORITHM.put("sha256withDSA", "sha256");
+        SIGNING_ALGORITHM.put("sha1withRSAandMGF1", "sha1");
+
+        SIGNING_ALGORITHM.put("sha224withRSA", "sha224");
+        SIGNING_ALGORITHM.put("sha224withRSAandMGF1", "sha224");
+
         SIGNING_ALGORITHM.put("sha256withRSA", "sha256");
         SIGNING_ALGORITHM.put("sha256withRSAandMGF1", "sha256");
+
+        SIGNING_ALGORITHM.put("sha384withRSA", "sha384");
+        SIGNING_ALGORITHM.put("sha384withRSAandMGF1", "sha384");
+
+        SIGNING_ALGORITHM.put("sha512withRSA", "sha512");
     }
 
     private X509Certificate senderPublicKey;
     private PrivateKey senderPrivateKey;
     private byte[] signedContent;
     private String signatureAlgorithm;
+
+    private static byte[] _getAsciiBytes(final String sString) {
+        final char[] aChars = sString.toCharArray();
+        final int nLength = aChars.length;
+        final byte[] ret = new byte[nLength];
+        for (int i = 0; i < nLength; i++)
+            ret[i] = (byte) aChars[i];
+        return ret;
+    }
 
     public void setSignatureAlgorithm(String signatureAlgorithm) {
         this.signatureAlgorithm = signatureAlgorithm;
@@ -78,55 +96,39 @@ public class MultipartSignedConverter implements Interceptor {
         this.senderPrivateKey = senderPrivateKey;
     }
 
-    protected InputStream trimCRLFPrefix(byte[] data) {
-        ByteArrayInputStream bIn = new ByteArrayInputStream(data);
-
-        int scanPos = 0;
-        int len = data.length;
-
-        while (scanPos < (len - 1)) {
-            if (new String(data, scanPos, 2).equals("\r\n")) {
-                bIn.read();
-                bIn.read();
-                scanPos += 2;
-            } else {
-                return bIn;
-            }
-        }
-
-        return bIn;
-    }
-
     private String calculateMIC(MimeBodyPart part) {
         //https://tools.ietf.org/html/rfc5751#section-2.1
         //DigestAlgorithmIdentifier
         HashMap<String, ASN1ObjectIdentifier> algoritmaDigest = new HashMap<>();
         algoritmaDigest.put("md5", PKCSObjectIdentifiers.md5);
         algoritmaDigest.put("sha1", OIWObjectIdentifiers.idSHA1);
+        algoritmaDigest.put("sha224", NISTObjectIdentifiers.id_sha224);
         algoritmaDigest.put("sha256", NISTObjectIdentifiers.id_sha256);
+        algoritmaDigest.put("sha384", NISTObjectIdentifiers.id_sha384);
+        algoritmaDigest.put("sha512", NISTObjectIdentifiers.id_sha512);
         try {
             String micAlg = SIGNING_ALGORITHM.get(signatureAlgorithm);
-            MessageDigest md = MessageDigest.getInstance(algoritmaDigest.get(micAlg).getId(), "SC");
-            // convert the Mime data to a byte array, then to an InputStream
-            ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-            // Canonicalize the data if not binary content transfer encoding
-            OutputStream os = new CRLFOutputStream(bOut);
-            //include header= part.writeTo
-            //exclude header= part.getInputStream()
-            part.writeTo(os);
-            byte[] data = bOut.toByteArray();
-            InputStream bIn = trimCRLFPrefix(data);
-            // calculate the hash of the data and mime header
-            DigestInputStream digIn = new DigestInputStream(bIn, md);
-            byte[] buf = new byte[4096];
-            while (digIn.read(buf) >= 0) {
+            MessageDigest md = MessageDigest.getInstance(algoritmaDigest.get(micAlg).getId(), "SC");//perlu canonicalize
+            // Start hashing the header
+            final byte[] aCRLF = new byte[]{'\r', '\n'};
+            final Enumeration<?> aHeaderLines = part.getAllHeaderLines();
+            while (aHeaderLines.hasMoreElements()) {
+                md.update(_getAsciiBytes((String) aHeaderLines.nextElement()));
+                md.update(aCRLF);
             }
-            bOut.close();
-            byte[] mic = digIn.getMessageDigest().digest();
-            StringBuffer micResult = new StringBuffer(new String(Base64.encode(mic)));
+            // The CRLF separator between header and content
+            md.update(aCRLF);
+            // No need to canonicalize here - see issue https://github.com/phax/as2-lib/issues/12
+            try (final DigestOutputStream aDOS = new DigestOutputStream(new NullOutputStream(), md);
+                 final OutputStream aOS = MimeUtility.encode(aDOS, part.getEncoding())) {
+                part.getDataHandler().writeTo(aOS);
+            }
+            // Build result digest array
+            final byte[] aMIC = md.digest();
+            // Perform Base64 encoding and append algorithm ID
+            StringBuffer micResult = new StringBuffer(new String(Base64.encode(aMIC)));
             micResult.append(", ").append(micAlg);
             return micResult.toString();
-
         } catch (Exception ex) {
             ex.printStackTrace();
         }

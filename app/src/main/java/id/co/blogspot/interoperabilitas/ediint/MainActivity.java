@@ -22,8 +22,11 @@ import org.spongycastle.jce.provider.BouncyCastleProvider;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Security;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import id.co.blogspot.interoperabilitas.ediint.antarmuka.ServiceContract;
 import id.co.blogspot.interoperabilitas.ediint.domain.AS2MDN;
@@ -35,6 +38,7 @@ import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import keystore.KeyStoreManager;
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.PemUtils;
@@ -54,10 +58,9 @@ public class MainActivity extends AppCompatActivity {
 
     private CoordinatorLayout mCoordinatorLayout;
     private NoDefaultSpinner encAlgo, signAlgo;
-    private EditText storePasswordField, storeFileField, keyAliasField, namaProduk, alamatPenjual;
+    private EditText storePasswordField, storeFileField, keyAliasField, namaProduk, alamatManufaktur;
     private Button storeFileButton;
     private Retrofit.Builder builder;
-    private String username;
     private List<LineItem> produks;
     private MultipartSignedConverter multipartSignedConverter;
     private Pkcs7MimeConverter pkcs7MimeConverter;
@@ -76,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
                 mKeyStoreManager.loadKeyStore(getContentResolver().openInputStream(uri), storePasswordField.getText().toString().toCharArray());
                 storeFileField.setText(uri.toString());
                 keyAliasField.setText(mKeyStoreManager.getUsername());
-                this.username = keyAliasField.getText().toString();
                 multipartSignedConverter.setSenderPublicKey(mKeyStoreManager.getPublicKey());
                 multipartSignedConverter.setSenderPrivateKey(mKeyStoreManager.getPrivateKey("".toCharArray()));
             } catch (Exception e) {
@@ -97,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         mCoordinatorLayout = findViewById(R.id.koordinator);
         storePasswordField = findViewById(R.id.storePasswordField);
         storeFileField = findViewById(R.id.storeFileField);
-        alamatPenjual = findViewById(R.id.alamatPenjual);
+        alamatManufaktur = findViewById(R.id.alamatManufaktur);
         namaProduk = findViewById(R.id.namaProduk);
         storeFileButton = findViewById(R.id.storeFileButton);
         storeFileButton.setOnClickListener(new View.OnClickListener() {
@@ -121,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         multipartSignedConverter = new MultipartSignedConverter();
         pkcs7MimeConverter = new Pkcs7MimeConverter();
 
-        InputStream certIs = MainActivity.class.getResourceAsStream("/penjual.pub");
+        InputStream certIs = MainActivity.class.getResourceAsStream("/manufaktur.pub");
         try {
             pkcs7MimeConverter.setRecipientPublicKey(PemUtils.decodeCertificate(certIs));
         } catch (Exception ex) {
@@ -138,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
 
         //the signed PO then encrypted using recipient Pub
         httpClient.addInterceptor(pkcs7MimeConverter);
+        httpClient.addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
 
         builder = new Retrofit.Builder()
                 .client(httpClient.build())
@@ -167,19 +170,19 @@ public class MainActivity extends AppCompatActivity {
                     produks.add(new LineItem("IDR", "Gillette Venus Razors (P&G)", "3", "12000", "4000"));
                     produks.add(new LineItem("IDR", "Listerine (Warner-Lambert)", "5", "5000", "1000"));
                     produks.add(new LineItem("IDR", "Oil of Olay ColorMoist Hazelnut No. 650 (P&G)", "1", "3000", "3000"));
-                    String domain = alamatPenjual.getText().toString();
+                    String domain = alamatManufaktur.getText().toString();
                     Uri recipientAddress = Uri.parse(domain);
                     builder.baseUrl(domain.endsWith("/") ? domain : domain + "/")
                             .build()
                             .create(ServiceContract.class)
                             .callSynchronously(
-                                    "<github-phax-as2-lib-24092017231318+0700-1102@OpenAS2A_OID_OpenAS2B_OID>",
-                                    "From OpenAS2A to OpenAS2B",
+                                    "<github-dawud-tan-RetrofitSmime-" + new SimpleDateFormat("ddMMyyyyHHmmssZ").format(new Date()) + "-" + new Random().nextLong() + "@mycompanyAS2_mendelsontestAS2>",
+                                    "http://s.id/aKo",
                                     recipientAddress.getScheme() + "://" + recipientAddress.getAuthority(),
-                                    "OpenAS2A",
-                                    "OpenAS2B",
-                                    "OpenAS2 A email",
-                                    "http://localhost:10080",
+                                    "mycompanyAS2",
+                                    "mendelsontestAS2",
+                                    "muhammad.dawud91@gmail.com",
+                                    "muhammad.dawud91@gmail.com",
                                     "signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional, " + MultipartSignedConverter.SIGNING_ALGORITHM.get(signAlgo.getSelectedItem()),
                                     produks)
                             .observeOn(AndroidSchedulers.mainThread())

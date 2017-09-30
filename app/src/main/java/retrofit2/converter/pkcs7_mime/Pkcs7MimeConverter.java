@@ -34,7 +34,9 @@ public class Pkcs7MimeConverter implements Interceptor {
         BouncyIntegration.init();
         //https://tools.ietf.org/html/rfc5751#section-2.7
         //ContentEncryptionAlgorithmIdentifier
-        ENCRYPTION_ALGORITHM.put("RC2_CBC", PKCSObjectIdentifiers.RC2_CBC);
+        ENCRYPTION_ALGORITHM.put("RC2_CBC 40", PKCSObjectIdentifiers.RC2_CBC);
+        ENCRYPTION_ALGORITHM.put("RC2_CBC 68", PKCSObjectIdentifiers.RC2_CBC);
+        ENCRYPTION_ALGORITHM.put("RC2_CBC 128", PKCSObjectIdentifiers.RC2_CBC);
         ENCRYPTION_ALGORITHM.put("DES_EDE3_CBC", PKCSObjectIdentifiers.des_EDE3_CBC);
         ENCRYPTION_ALGORITHM.put("AES128_CBC", NISTObjectIdentifiers.id_aes128_CBC);//default
         ENCRYPTION_ALGORITHM.put("AES192_CBC", NISTObjectIdentifiers.id_aes192_CBC);
@@ -44,6 +46,7 @@ public class Pkcs7MimeConverter implements Interceptor {
     private X509Certificate recipientPublicKey;
     private MimeBodyPart output;
     private ASN1ObjectIdentifier encryptionOID;
+    private int keySize;
 
     public static MimeBodyPart createBodyPart(MediaType contentType, byte[] content) throws IOException, MessagingException {
         InternetHeaders ih = new InternetHeaders();
@@ -53,6 +56,10 @@ public class Pkcs7MimeConverter implements Interceptor {
 
     public void setEncryptionOID(Object encAlgo) {
         this.encryptionOID = ENCRYPTION_ALGORITHM.get(encAlgo);
+        String _encAlgo = encAlgo.toString();
+        if (_encAlgo.startsWith("RC2_CBC")) {
+            keySize = Integer.valueOf(_encAlgo.split("\\s+")[1]);
+        }
     }
 
     public void setRecipientPublicKey(X509Certificate recipientPublicKey) {
@@ -69,9 +76,12 @@ public class Pkcs7MimeConverter implements Interceptor {
         bs.flush();
 
         try {
-            OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(this.encryptionOID)
-                    .setProvider("SC")
-                    .build();
+            OutputEncryptor encryptor;
+            if (this.encryptionOID.equals(PKCSObjectIdentifiers.RC2_CBC)) {
+                encryptor = new JceCMSContentEncryptorBuilder(this.encryptionOID, keySize).setProvider("SC").build();
+            } else {
+                encryptor = new JceCMSContentEncryptorBuilder(this.encryptionOID).setProvider("SC").build();
+            }
             JceKeyTransRecipientInfoGenerator infoGenerator = new JceKeyTransRecipientInfoGenerator(this.recipientPublicKey)
                     .setProvider("SC");
             SMIMEEnvelopedGenerator gen = new SMIMEEnvelopedGenerator();
@@ -81,6 +91,8 @@ public class Pkcs7MimeConverter implements Interceptor {
             output = gen.generate(_msg, encryptor);
 
             Request envelopedRequest = originalRequest.newBuilder()
+                    //https://tools.ietf.org/html/rfc3851#section-3.2.1
+                    //3.2.1.  The name and filename Parameters
                     .header("Content-Disposition", "attachment; filename=\"smime.p7m\"")
                     .post(new RequestBody() {
                         @Override

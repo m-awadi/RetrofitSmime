@@ -2,8 +2,8 @@ package id.co.blogspot.interoperabilitas.ediint.antarmuka;
 
 import java.util.List;
 
-import id.co.blogspot.interoperabilitas.ediint.domain.LineItem;
 import id.co.blogspot.interoperabilitas.ediint.domain.AS2MDN;
+import id.co.blogspot.interoperabilitas.ediint.domain.LineItem;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import retrofit2.http.Body;
@@ -19,7 +19,7 @@ public interface ServiceContract {
             "Mime-Version: 1.0",
             "AS2-Version: 1.1"
     })
-    @POST("./")
+    @POST("HttpReceiver")
     Completable sendAsynchronously(
             @Header("Message-Id") String messageId,
             @Header("Subject") String subject,
@@ -27,7 +27,7 @@ public interface ServiceContract {
             @Header("AS2-From") String as2from,
             @Header("AS2-To") String as2to,
             @Header("from") String from,
-            @Header("Disposition-Notification-To") String dispositionNotificationTo,
+            @Header("Disposition-Notification-To") String dispositionNotificationTo,//ask receiving UA issue an MDN
             @Header("Disposition-Notification-Options") String dispositionNotificationOptions,
             @Header("Receipt-Delivery-Option:") String receiptDeliveryOption,//request an asynchronous MDN
             @Body List<LineItem> eo);
@@ -36,7 +36,7 @@ public interface ServiceContract {
             "Mime-Version: 1.0",
             "AS2-Version: 1.1"
     })
-    @POST("./")
+    @POST("HttpReceiver")
     Single<AS2MDN> callSynchronously(
             @Header("Message-Id") String messageId,
             @Header("Subject") String subject,
@@ -44,7 +44,7 @@ public interface ServiceContract {
             @Header("AS2-From") String as2from,
             @Header("AS2-To") String as2to,
             @Header("From") String from,
-            @Header("Disposition-Notification-To") String dispositionNotificationTo,
+            @Header("Disposition-Notification-To") String dispositionNotificationTo,//ask receiving UA issue an MDN
             @Header("Disposition-Notification-Options") String dispositionNotificationOptions,
             @Body List<LineItem> eo);
 }

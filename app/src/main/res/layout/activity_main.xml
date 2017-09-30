@@ -36,13 +36,13 @@
                     android:layout_height="wrap_content">
 
                     <EditText
-                        android:id="@+id/alamatPenjual"
+                        android:id="@+id/alamatManufaktur"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Alamat Penjual"
+                        android:hint="Alamat Manufaktur"
                         android:inputType="text"
                         android:maxLines="1"
-                        android:text="http://10.0.2.2:10080/" />
+                        android:text="http://testas2.mendelson-e-c.com:8080/as2/" />
                 </android.support.design.widget.TextInputLayout>
 
                 <android.support.design.widget.TextInputLayout
@@ -88,7 +88,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:enabled="false"
-                            android:hint="Sertifikat User (*.p12)"
+                            android:hint="Sertifikat Peritel (*.pfx/*.p12)"
                             android:inputType="textUri"
                             android:maxLines="1" />
                     </android.support.design.widget.TextInputLayout>

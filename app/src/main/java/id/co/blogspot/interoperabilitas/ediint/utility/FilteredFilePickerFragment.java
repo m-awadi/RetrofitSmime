@@ -11,9 +11,6 @@ import java.io.File;
  */
 public class FilteredFilePickerFragment extends FilePickerFragment {
 
-    // File extension to filter on
-    private static final String EXTENSION = ".p12";
-
     /**
      * @param file
      * @return The file extension. If file has no extension, it returns null.
@@ -33,7 +30,7 @@ public class FilteredFilePickerFragment extends FilePickerFragment {
         boolean ret = super.isItemVisible(file);
         if (ret && !isDir(file) && (mode == MODE_FILE || mode == MODE_FILE_AND_DIR)) {
             String ext = getExtension(file);
-            return ext != null && EXTENSION.equalsIgnoreCase(ext);
+            return ext != null && (".p12".equalsIgnoreCase(ext) || ".pfx".equalsIgnoreCase(ext));
         }
         return ret;
     }
