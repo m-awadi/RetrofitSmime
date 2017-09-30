@@ -1,7 +1,7 @@
 # RetrofitSmime
 Android app that show how to use spongycastle S/MIME package to send an AS2-Message (RFC 4130), this project use Android Studio 2.3.3
 
-You could send signed & encrypted Purchase Order using this certificate '[pembeli.p12](https://github.com/dawud-tan/RetrofitSmime/raw/master/peritel.p12)', the passphrase is `test`
+You could send signed & encrypted Purchase Order using this certificate '[peritel.p12](https://github.com/dawud-tan/RetrofitSmime/raw/master/peritel.p12)', the passphrase is `test`
 
 In this project, the purchase order will be delivered to the following endpoint `http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver`.
 
