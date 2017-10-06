@@ -1,4 +1,4 @@
-package retrofit2.converter;
+package id.co.blogspot.interoperabilitas.ediint.utility;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -1,20 +1,12 @@
 package org.spongycastle.mail.smime;
 
-import org.spongycastle.asn1.cms.IssuerAndSerialNumber;
-import org.spongycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.spongycastle.cms.CMSTypedStream;
 import org.spongycastle.mail.smime.util.CRLFOutputStream;
-import org.spongycastle.mail.smime.util.FileBackedMimeBodyPart;
 import org.spongycastle.util.Strings;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 
 import javax.mail.BodyPart;
@@ -299,92 +291,6 @@ public class SMIMEUtil {
         }
     }
 
-    /**
-     * return the MimeBodyPart described in the raw bytes provided in content
-     */
-    public static MimeBodyPart toMimeBodyPart(
-            byte[] content)
-            throws SMIMEException {
-        return toMimeBodyPart(new ByteArrayInputStream(content));
-    }
-
-    /**
-     * return the MimeBodyPart described in the input stream content
-     */
-    public static MimeBodyPart toMimeBodyPart(
-            InputStream content)
-            throws SMIMEException {
-        try {
-            return new MimeBodyPart(content);
-        } catch (MessagingException e) {
-            throw new SMIMEException("exception creating body part.", e);
-        }
-    }
-
-    static FileBackedMimeBodyPart toWriteOnceBodyPart(
-            CMSTypedStream content)
-            throws SMIMEException {
-        try {
-            return new WriteOnceFileBackedMimeBodyPart(content.getContentStream(), File.createTempFile("bcMail", ".mime"));
-        } catch (IOException e) {
-            throw new SMIMEException("IOException creating tmp file:" + e.getMessage(), e);
-        } catch (MessagingException e) {
-            throw new SMIMEException("can't create part: " + e, e);
-        }
-    }
-
-    /**
-     * return a file backed MimeBodyPart described in {@link CMSTypedStream} content.
-     * </p>
-     */
-    public static FileBackedMimeBodyPart toMimeBodyPart(
-            CMSTypedStream content)
-            throws SMIMEException {
-        try {
-            return toMimeBodyPart(content, File.createTempFile("bcMail", ".mime"));
-        } catch (IOException e) {
-            throw new SMIMEException("IOException creating tmp file:" + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Return a file based MimeBodyPart represented by content and backed
-     * by the file represented by file.
-     *
-     * @param content content stream containing body part.
-     * @param file    file to store the decoded body part in.
-     * @return the decoded body part.
-     * @throws SMIMEException
-     */
-    public static FileBackedMimeBodyPart toMimeBodyPart(
-            CMSTypedStream content,
-            File file)
-            throws SMIMEException {
-        try {
-            return new FileBackedMimeBodyPart(content.getContentStream(), file);
-        } catch (IOException e) {
-            throw new SMIMEException("can't save content to file: " + e, e);
-        } catch (MessagingException e) {
-            throw new SMIMEException("can't create part: " + e, e);
-        }
-    }
-
-    /**
-     * Return a CMS IssuerAndSerialNumber structure for the passed in X.509 certificate.
-     *
-     * @param cert the X.509 certificate to get the issuer and serial number for.
-     * @return an IssuerAndSerialNumber structure representing the certificate.
-     */
-    public static IssuerAndSerialNumber createIssuerAndSerialNumberFor(
-            X509Certificate cert)
-            throws CertificateParsingException {
-        try {
-            return new IssuerAndSerialNumber(new JcaX509CertificateHolder(cert).getIssuer(), cert.getSerialNumber());
-        } catch (Exception e) {
-            throw new CertificateParsingException("exception extracting issuer and serial number: " + e);
-        }
-    }
-
     static class LineOutputStream extends FilterOutputStream {
         private static byte newline[];
 
@@ -429,21 +335,6 @@ public class SMIMEUtil {
             } catch (Exception exception) {
                 throw new MessagingException("IOException", exception);
             }
-        }
-    }
-
-    private static class WriteOnceFileBackedMimeBodyPart
-            extends FileBackedMimeBodyPart {
-        public WriteOnceFileBackedMimeBodyPart(InputStream content, File file)
-                throws MessagingException, IOException {
-            super(content, file);
-        }
-
-        public void writeTo(OutputStream out)
-                throws MessagingException, IOException {
-            super.writeTo(out);
-
-            this.dispose();
         }
     }
 

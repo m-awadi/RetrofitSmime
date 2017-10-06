@@ -1,11 +1,8 @@
 package org.spongycastle.mail.smime;
 
 import org.spongycastle.cms.CMSException;
-import org.spongycastle.cms.CMSProcessable;
 import org.spongycastle.cms.CMSSignedData;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessController;
@@ -15,11 +12,8 @@ import javax.activation.CommandMap;
 import javax.activation.MailcapCommandMap;
 import javax.mail.MessagingException;
 import javax.mail.Part;
-import javax.mail.Session;
 import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimePart;
 
 /**
  * general class for handling a pkcs7-signature message.
@@ -94,49 +88,6 @@ public class SMIMESigned
         this.content = (MimeBodyPart) message.getBodyPart(0);
     }
 
-    /**
-     * base constructor with settable contentTransferEncoding
-     *
-     * @param message                        the signed message
-     * @param defaultContentTransferEncoding new default to use
-     * @throws MessagingException on an error extracting the signature or
-     *                            otherwise processing the message.
-     * @throws CMSException       if some other problem occurs.
-     */
-    public SMIMESigned(
-            MimeMultipart message,
-            String defaultContentTransferEncoding)
-            throws MessagingException, CMSException {
-        super(new CMSProcessableBodyPartInbound(message.getBodyPart(0), defaultContentTransferEncoding), getInputStream(message.getBodyPart(1)));
-
-        this.message = message;
-        this.content = (MimeBodyPart) message.getBodyPart(0);
-    }
-
-    /**
-     * base constructor for a signed message with encapsulated content.
-     *
-     * @throws MessagingException on an error extracting the signature or
-     *                            otherwise processing the message.
-     * @throws SMIMEException     if the body part encapsulated in the message cannot be extracted.
-     * @throws CMSException       if some other problem occurs.
-     */
-    public SMIMESigned(
-            Part message)
-            throws MessagingException, CMSException, SMIMEException {
-        super(getInputStream(message));
-
-        this.message = message;
-
-        CMSProcessable cont = this.getSignedContent();
-
-        if (cont != null) {
-            byte[] contBytes = (byte[]) cont.getContent();
-
-            this.content = SMIMEUtil.toMimeBodyPart(contBytes);
-        }
-    }
-
     private static InputStream getInputStream(
             Part bodyPart)
             throws MessagingException {
@@ -156,60 +107,5 @@ public class SMIMESigned
      */
     public MimeBodyPart getContent() {
         return content;
-    }
-
-    /**
-     * Return the content that was signed as a mime message.
-     *
-     * @param session
-     * @return a MimeMessage holding the content.
-     * @throws MessagingException
-     */
-    public MimeMessage getContentAsMimeMessage(Session session)
-            throws MessagingException, IOException {
-        Object content = getSignedContent().getContent();
-        byte[] contentBytes = null;
-
-        if (content instanceof byte[]) {
-            contentBytes = (byte[]) content;
-        } else if (content instanceof MimePart) {
-            MimePart part = (MimePart) content;
-            ByteArrayOutputStream out;
-
-            if (part.getSize() > 0) {
-                out = new ByteArrayOutputStream(part.getSize());
-            } else {
-                out = new ByteArrayOutputStream();
-            }
-
-            part.writeTo(out);
-            contentBytes = out.toByteArray();
-        } else {
-            String type = "<null>";
-            if (content != null) {
-                type = content.getClass().getName();
-            }
-
-            throw new MessagingException(
-                    "Could not transfrom content of type "
-                            + type
-                            + " into MimeMessage.");
-        }
-
-        if (contentBytes != null) {
-            ByteArrayInputStream in = new ByteArrayInputStream(contentBytes);
-
-            return new MimeMessage(session, in);
-        }
-
-        return null;
-    }
-
-    /**
-     * return the content that was signed - depending on whether this was
-     * unencapsulated or not it will return a MimeMultipart or a MimeBodyPart
-     */
-    public Object getContentWithSignature() {
-        return message;
     }
 }

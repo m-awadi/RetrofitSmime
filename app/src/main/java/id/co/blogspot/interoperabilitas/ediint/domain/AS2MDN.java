@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
  */
 
 public class AS2MDN {
+    public Boolean signedByRecipient;
     public String text;
     public String action;
     public String mdnAction;

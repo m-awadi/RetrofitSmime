@@ -20,6 +20,5 @@ android {
 
 dependencies {
     compile group: 'com.sun.mail', name: 'android-mail', version: '1.6.0'
-    compile group: 'com.sun.mail', name: 'android-activation', version: '1.6.0'
     compile group: 'com.madgag.spongycastle', name: 'bcpkix-jdk15on', version: '1.58.0.0'
 }

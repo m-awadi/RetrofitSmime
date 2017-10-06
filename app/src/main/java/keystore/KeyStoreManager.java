@@ -194,7 +194,7 @@ public class KeyStoreManager {
         }
     }
 
-    public X509Certificate getPublicKey() throws LoginException {
+    public X509Certificate getCertificate() throws LoginException {
         try {
             return (X509Certificate) this.keyStore.getCertificate(this.getUsername());
         } catch (KeyStoreException e) {

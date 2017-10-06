@@ -1,4 +1,6 @@
-package retrofit2.converter;
+package id.co.blogspot.interoperabilitas.ediint.utility;
+
+import org.spongycastle.util.encoders.Base64;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
