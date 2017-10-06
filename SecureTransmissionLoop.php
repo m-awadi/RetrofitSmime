@@ -20,7 +20,7 @@ file_put_contents('./pemberitahuan_impor_barang.txt', $customs_dec_msg);
 @unlink($outfilename);
 @unlink($decrypted);
 $digest_algorithm = explode(", ", explode("; ", $_SERVER['HTTP_DISPOSITION_NOTIFICATION_OPTIONS'])[1])[1];
-$message_digest = base64_encode(hex2bin(openssl_digest($customs_dec_msg, $digest_algorithm)));
+$message_digest = base64_encode(openssl_digest($customs_dec_msg, $digest_algorithm, true));
 $boundary = uniqid('----=_Part_');
 $receipt = <<<EOT
 Content-Type: multipart/report; report-type=disposition-notification; 
