@@ -54,6 +54,5 @@ public class TanggapanKepabeananFragment extends DialogFragment {
                 TanggapanKepabeananFragment.this.dismiss();
             }
         });
-        getDialog().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
     }
 }

@@ -42,7 +42,7 @@
                         android:hint="Alamat Kepabeanan"
                         android:inputType="text"
                         android:maxLines="1"
-                        android:text="http://10.0.2.2/as2/SecureTransmissionLoop.php" />
+                        android:text="http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver" />
                     <!--http://10.0.2.2/as2/SecureTransmissionLoop.php-->
                     <!--http://10.0.2.2:8080/api/aha-->
                     <!--http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver-->
@@ -157,19 +157,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:prompt="@string/signingPrompt" />
-                <android.support.design.widget.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
 
-                    <EditText
-                        android:id="@+id/contentTypePesanImportirField"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Content-Type"
-                        android:inputType="textPersonName"
-                        android:maxLines="1"
-                        android:text="application/edi-x12; charset=UTF-8" />
-                </android.support.design.widget.TextInputLayout>
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/contentTypePesanImportirField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/contentTypePrompt" />
+
                 <android.support.design.widget.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="0px"

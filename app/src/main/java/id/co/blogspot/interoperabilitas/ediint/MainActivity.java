@@ -9,6 +9,8 @@ import android.os.Handler;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.JsonReader;
+import android.util.Xml;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -21,6 +23,7 @@ import com.nononsenseapps.filepicker.FilePickerActivity;
 import com.sun.mail.dsn.DispositionNotification;
 import com.sun.mail.dsn.MultipartReport;
 
+import org.apache.commons.csv.CSVFormat;
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
 import org.spongycastle.asn1.nist.NISTObjectIdentifiers;
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
@@ -37,11 +40,13 @@ import org.spongycastle.mail.smime.SMIMESigned;
 import org.spongycastle.mail.smime.SMIMESignedGenerator;
 import org.spongycastle.operator.OutputEncryptor;
 import org.spongycastle.util.encoders.Base64;
+import org.xmlpull.v1.XmlPullParser;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -101,8 +106,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private CoordinatorLayout mCoordinatorLayout;
-    private NoDefaultSpinner encAlgo, signAlgo;
-    private EditText storePasswordField, storeFileField, fromField, as2FromField, as2ToField, subjectField, pesanImportir, alamatKepabeanan, contentTypePesanImportirField;
+    private NoDefaultSpinner encAlgo, signAlgo, contentTypePesanImportirField;
+    private EditText storePasswordField, storeFileField, fromField, as2FromField, as2ToField, subjectField, pesanImportir, alamatKepabeanan;
     private Button storeFileButton;
     private PrivateKey senderPrivateKey;
     private X509Certificate senderPublicKey;
@@ -213,7 +218,20 @@ public class MainActivity extends AppCompatActivity {
         as2ToField = findViewById(R.id.as2ToField);
         as2FromField = findViewById(R.id.as2FromField);
         subjectField = findViewById(R.id.subjectField);
+
+        String[] contentTypes = new String[]{
+                "text/plain",
+                "text/csv",
+                "application/json",
+                "application/xml",
+                "application/edifact",
+                "application/edi-x12"
+        };
+
+        ArrayAdapter<String> ctAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, contentTypes);
         contentTypePesanImportirField = findViewById(R.id.contentTypePesanImportirField);
+        contentTypePesanImportirField.setAdapter(ctAdapter);
+        contentTypePesanImportirField.setSelection(4);//application/edifact default
 
         ArrayAdapter<String> encAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, ENCRYPTION_ALGORITHM.keySet().toArray(new String[ENCRYPTION_ALGORITHM.keySet().size()]));
         encAlgo = findViewById(R.id.contentEncryptionAlgorithmIdentifierField);
@@ -252,12 +270,51 @@ public class MainActivity extends AppCompatActivity {
                         signAlgo.requestFocus();
                         throw new Exception("Algoritma Tanda Tangan belum dipilih");
                     }
+                    if (contentTypePesanImportirField.getSelectedItem() == null) {
+                        contentTypePesanImportirField.requestFocus();
+                        throw new Exception("Content-Type: belum dipilih");
+                    }
+                    String tipeKonten = contentTypePesanImportirField.getSelectedItem().toString();
+                    StringReader stringReader = new StringReader(pesanImportir.getText().toString());
+                    if (tipeKonten.equals("application/xml")) {
+                        try {
+                            XmlPullParser parser = Xml.newPullParser();
+                            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+                            parser.setInput(stringReader);
+                            parser.nextTag();
+                            stringReader.close();
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                            throw new RuntimeException("bukan dokumen XML Valid");
+                        }
+                    }
+                    if (tipeKonten.equals("application/json")) {
+                        try {
+                            JsonReader jsonReader = new JsonReader(stringReader);
+                            jsonReader.hasNext();
+                            stringReader.close();
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                            throw new RuntimeException("bukan dokumen JSON Valid");
+                        }
+                    }
+                    if (tipeKonten.equals("text/csv")) {
+                        try {
+                            CSVFormat.RFC4180.parse(stringReader);
+                            stringReader.close();
+                        } catch (Exception ex) {
+                            throw new RuntimeException("bukan dokumen CSV Valid");
+                        }
+                    }
+                    //if (tipeKonten.equals("application/edifact")), smooks tdk bisa di android
+                    //if (tipeKonten.equals("application/edi-x12")), tidak <em>aware</em> ttg ini
                     //validasi form
+
                     signatureAlgorithm = signAlgo.getSelectedItem().toString();
                     encryptionOID = ENCRYPTION_ALGORITHM.get(encAlgo.getSelectedItem());
                     new CallSynchronouslyTask().execute(
                             pesanImportir.getText().toString(),
-                            contentTypePesanImportirField.getText().toString(),
+                            tipeKonten,
                             alamatKepabeanan.getText().toString(),
                             signAlgo.getSelectedItem().toString(),
                             fromField.getText().toString(),
@@ -280,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String pesanImpor = args[0];
                 InternetHeaders ih = new InternetHeaders();
-                ih.addHeader("Content-Type", args[1]);
+                ih.addHeader("Content-Type", args[1].concat("; charset=UTF-8"));
                 SMIMESignedGenerator gen = new SMIMESignedGenerator();
                 SignerInfoGenerator signer = new JcaSimpleSignerInfoGeneratorBuilder()
                         .setProvider("SC")
