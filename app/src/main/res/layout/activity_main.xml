@@ -31,22 +31,11 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <android.support.design.widget.TextInputLayout
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/alamatMitraDagang"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <EditText
-                        android:id="@+id/alamatKepabeanan"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Alamat Kepabeanan"
-                        android:inputType="text"
-                        android:maxLines="1"
-                        android:text="http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver" />
-                    <!--http://10.0.2.2/as2/SecureTransmissionLoop.php-->
-                    <!--http://10.0.2.2:8080/api/aha-->
-                    <!--http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver-->
-                </android.support.design.widget.TextInputLayout>
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/alamatServer" />
 
                 <android.support.design.widget.TextInputLayout
                     android:layout_width="match_parent"
@@ -88,7 +77,23 @@
                         android:layout_height="wrap_content"
                         android:elevation="8dp"
                         android:text="Open" />
+
                 </LinearLayout>
+                <!--true maka RSA-->
+                <!--false maka EC-->
+                <android.support.design.widget.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <EditText
+                        android:id="@+id/algoritmaPubKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:enabled="false"
+                        android:hint="Algoritma Public Key"
+                        android:inputType="textPersonName"
+                        android:maxLines="1" />
+                </android.support.design.widget.TextInputLayout>
 
                 <android.support.design.widget.TextInputLayout
                     android:layout_width="match_parent"
@@ -147,16 +152,46 @@
                 </android.support.design.widget.TextInputLayout>
 
                 <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
-                    android:id="@+id/contentEncryptionAlgorithmIdentifierField"
+                    android:id="@+id/rsaContentEncryptionAlgorithmIdentifierField"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:prompt="@string/encryptionPrompt" />
+                    android:prompt="@string/contentEncryptionPrompt"
+                    android:visibility="gone" />
 
                 <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
-                    android:id="@+id/signatureAlgorithmIdentifierField"
+                    android:id="@+id/ecContentEncryptionAlgorithmIdentifierField"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:prompt="@string/signingPrompt" />
+                    android:prompt="@string/contentEncryptionPrompt"
+                    android:visibility="gone" />
+
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/rsaKeyEncryptionAlgorithmIdentifierField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/keyEncryptionPrompt"
+                    android:visibility="gone" />
+
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/ecKeyEncryptionAlgorithmIdentifierField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/keyEncryptionPrompt"
+                    android:visibility="gone" />
+
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/rsaSignatureAlgorithmIdentifierField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/signingPrompt"
+                    android:visibility="gone" />
+
+                <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
+                    android:id="@+id/ecSignatureAlgorithmIdentifierField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:prompt="@string/signingPrompt"
+                    android:visibility="gone" />
 
                 <id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner
                     android:id="@+id/contentTypePesanImportirField"

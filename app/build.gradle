@@ -7,12 +7,9 @@ android {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
         targetSdkVersion 26
-        versionCode 31
-        versionName "3.4.1"
+        versionCode 32
+        versionName "3.5.0"
         multiDexEnabled true
-    }
-    packagingOptions {
-        pickFirst 'META-INF/mailcap'
     }
 }
 
@@ -21,13 +18,11 @@ dependencies {
     androidTestCompile group: 'com.android.support', name: 'multidex', version: '1.0.2'
     compile group: 'com.android.support', name: 'appcompat-v7', version: '26.1.0'
     compile group: 'com.android.support', name: 'design', version: '26.1.0'
-    compile group: 'com.google.android.gms', name: 'play-services-ads', version: '11.4.2'
+    compile group: 'com.google.firebase', name: 'firebase-ads', version: '11.4.2'
     compile group: 'org.apache.commons', name: 'commons-csv', version: '1.5'//rfc 4180
     compile group: 'com.nononsenseapps', name: 'filepicker', version: '4.1.0'
     compile group: 'com.madgag.spongycastle', name: 'prov', version: '1.58.0.0'
     compile group: 'com.sun.mail', name: 'android-mail', version: '1.6.0'
-    compile(group: 'com.sun.mail', name: 'dsn', version: '1.6.0') {//report (RFC 3462) & DN (RFC 3798)
-        exclude group: 'com.sun.mail', module: 'javax.mail'
-    }
     compile project(':bcmail-jdk15on')//S/MIME v.3.1 rfc 3851
 }
+apply plugin: 'com.google.gms.google-services'

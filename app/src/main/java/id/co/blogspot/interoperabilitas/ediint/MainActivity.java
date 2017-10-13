@@ -2,10 +2,8 @@ package id.co.blogspot.interoperabilitas.ediint;
 
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -20,171 +18,158 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 import com.nononsenseapps.filepicker.FilePickerActivity;
-import com.sun.mail.dsn.DispositionNotification;
-import com.sun.mail.dsn.MultipartReport;
 
 import org.apache.commons.csv.CSVFormat;
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
+import org.spongycastle.asn1.DERNull;
+import org.spongycastle.asn1.DEROctetString;
 import org.spongycastle.asn1.nist.NISTObjectIdentifiers;
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.spongycastle.cms.SignerInfoGenerator;
-import org.spongycastle.cms.SignerInformation;
-import org.spongycastle.cms.SignerInformationStore;
-import org.spongycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder;
-import org.spongycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
-import org.spongycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
+import org.spongycastle.asn1.pkcs.RSAESOAEPparams;
+import org.spongycastle.asn1.sec.SECObjectIdentifiers;
+import org.spongycastle.asn1.x509.AlgorithmIdentifier;
+import org.spongycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 import org.spongycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 import org.spongycastle.jce.provider.BouncyCastleProvider;
-import org.spongycastle.mail.smime.SMIMEEnvelopedGenerator;
-import org.spongycastle.mail.smime.SMIMESigned;
-import org.spongycastle.mail.smime.SMIMESignedGenerator;
-import org.spongycastle.operator.OutputEncryptor;
-import org.spongycastle.util.encoders.Base64;
 import org.xmlpull.v1.XmlPullParser;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.StringReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Random;
-import java.util.Scanner;
-
-import javax.mail.internet.InternetHeaders;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimePartDataSource;
-import javax.mail.internet.MimeUtility;
-import javax.mail.util.ByteArrayDataSource;
+import java.util.concurrent.Future;
 
 import id.co.blogspot.interoperabilitas.ediint.utility.MyPickerActivity;
 import id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner;
-import id.co.blogspot.interoperabilitas.ediint.utility.NullOutputStream;
 import id.co.blogspot.interoperabilitas.ediint.utility.PemUtils;
+import id.co.blogspot.interoperabilitas.ediint.utility.Srvc;
 import keystore.KeyStoreManager;
 
 /**
  * Created by dawud_tan on 11/11/16.
  */
 public class MainActivity extends AppCompatActivity {
-    static final int FILE_CODE = 1;
-    public static HashMap<String, String> SIGNING_ALGORITHM = new HashMap<>();
-    private static HashMap<String, ASN1ObjectIdentifier> ENCRYPTION_ALGORITHM = new HashMap<>();
+    private static final int FILE_CODE = 1;
+    private static HashMap<String, String> RSA_SIGNING_ALGORITHM = new HashMap<>();
+    private static HashMap<String, String> EC_SIGNING_ALGORITHM = new HashMap<>();
+    private static HashMap<String, ASN1ObjectIdentifier> RSA_CONTENT_ENCRYPTION_ALGORITHM = new HashMap<>();
+    private static HashMap<String, ASN1ObjectIdentifier> EC_CONTENT_ENCRYPTION_ALGORITHM = new HashMap<>();
+    private static HashMap<String, AlgorithmIdentifier> RSA_KEY_ENCRYPTION_ALGORITHM = new HashMap<>();
+    private static HashMap<String, ASN1ObjectIdentifier> EC_KEY_ENCRYPTION_ALGORITHM = new HashMap<>();
+    private static HashMap<ASN1ObjectIdentifier, ASN1ObjectIdentifier> KEY_WRAP_ALGORITHM = new HashMap<>();
 
     static {
         Security.insertProviderAt(new BouncyCastleProvider(), 1);
+        //https://tools.ietf.org/html/rfc5751#section-2.3
+        //KeyEncryptionAlgorithmIdentifier
+//UNTUK rsa
+        RSA_KEY_ENCRYPTION_ALGORITHM.put("RSA Encryption", new AlgorithmIdentifier(PKCSObjectIdentifiers.rsaEncryption));
+        AlgorithmIdentifier hashFunc = new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE);
+        AlgorithmIdentifier maskGenFunc = new AlgorithmIdentifier(PKCSObjectIdentifiers.id_mgf1, hashFunc);
+        AlgorithmIdentifier pSourceFunc = new AlgorithmIdentifier(PKCSObjectIdentifiers.id_pSpecified, new DEROctetString(new byte[0]));
+        RSAESOAEPparams parameters = new RSAESOAEPparams(hashFunc, maskGenFunc, pSourceFunc);
+        RSA_KEY_ENCRYPTION_ALGORITHM.put("RSAES-OAEP", new AlgorithmIdentifier(PKCSObjectIdentifiers.id_RSAES_OAEP, parameters));
+//UNTUK rsa
+
+//UNTUK ELLIPTIC CURVE
+        EC_KEY_ENCRYPTION_ALGORITHM.put("dhSinglePass-stdDH-sha256kdf-scheme", SECObjectIdentifiers.dhSinglePass_stdDH_sha256kdf_scheme);
+        KEY_WRAP_ALGORITHM.put(SECObjectIdentifiers.dhSinglePass_stdDH_sha256kdf_scheme, NISTObjectIdentifiers.id_aes128_wrap);
+        EC_KEY_ENCRYPTION_ALGORITHM.put("dhSinglePass-stdDH-sha384kdf-scheme", SECObjectIdentifiers.dhSinglePass_stdDH_sha384kdf_scheme);
+        KEY_WRAP_ALGORITHM.put(SECObjectIdentifiers.dhSinglePass_stdDH_sha384kdf_scheme, NISTObjectIdentifiers.id_aes256_wrap);
+//UNTUK ELLIPTIC CURVE
+
         //https://tools.ietf.org/html/rfc5751#section-2.7
         //ContentEncryptionAlgorithmIdentifier
-        //openssl rc2 68 bit tidak ada
-        ENCRYPTION_ALGORITHM.put("DES_EDE3_CBC", PKCSObjectIdentifiers.des_EDE3_CBC);
-        ENCRYPTION_ALGORITHM.put("AES128_CBC", NISTObjectIdentifiers.id_aes128_CBC);//default
-        ENCRYPTION_ALGORITHM.put("AES192_CBC", NISTObjectIdentifiers.id_aes192_CBC);
-        ENCRYPTION_ALGORITHM.put("AES256_CBC", NISTObjectIdentifiers.id_aes256_CBC);
+        //openssl rc2 68 bit tidak ada, simetris
+        RSA_CONTENT_ENCRYPTION_ALGORITHM.put("AES128_CBC", NISTObjectIdentifiers.id_aes128_CBC);//default
+        RSA_CONTENT_ENCRYPTION_ALGORITHM.put("AES256_CBC", NISTObjectIdentifiers.id_aes256_CBC);
+
+//untuk elliptic curve
+        EC_CONTENT_ENCRYPTION_ALGORITHM.put("AES128_CBC", NISTObjectIdentifiers.id_aes128_CBC);//default
+        EC_CONTENT_ENCRYPTION_ALGORITHM.put("AES256_CBC", NISTObjectIdentifiers.id_aes256_CBC);
+        EC_CONTENT_ENCRYPTION_ALGORITHM.put("AES128_GCM", NISTObjectIdentifiers.id_aes128_GCM);//default
+        EC_CONTENT_ENCRYPTION_ALGORITHM.put("AES256_GCM", NISTObjectIdentifiers.id_aes256_GCM);
+//untuk elliptic curve
 
         //https://tools.ietf.org/html/rfc5751#section-2.2
         //SignatureAlgorithmIdentifier
         //openssl syntax-nya masih pakai RFC3851, blm rfc 5751
-        SIGNING_ALGORITHM.put("sha224withRSA", "sha224");
-        SIGNING_ALGORITHM.put("sha224withRSAandMGF1", "sha224");
-        SIGNING_ALGORITHM.put("sha256withRSA", "sha256");
-        SIGNING_ALGORITHM.put("sha256withRSAandMGF1", "sha256");
-        SIGNING_ALGORITHM.put("sha384withRSA", "sha384");
-        SIGNING_ALGORITHM.put("sha384withRSAandMGF1", "sha384");
-        SIGNING_ALGORITHM.put("sha512withRSA", "sha512");
+        RSA_SIGNING_ALGORITHM.put("sha256withRSA", "sha256");
+        RSA_SIGNING_ALGORITHM.put("sha384withRSA", "sha384");
+        RSA_SIGNING_ALGORITHM.put("sha256withRSAandMGF1", "sha256");
+        RSA_SIGNING_ALGORITHM.put("sha384withRSAandMGF1", "sha384");
+
+//untuk elliptic curve
+        EC_SIGNING_ALGORITHM.put("sha256withECDSA", "sha256");
+        EC_SIGNING_ALGORITHM.put("sha384withECDSA", "sha384");
+//untuk elliptic curve
     }
 
     private CoordinatorLayout mCoordinatorLayout;
-    private NoDefaultSpinner encAlgo, signAlgo, contentTypePesanImportirField;
-    private EditText storePasswordField, storeFileField, fromField, as2FromField, as2ToField, subjectField, pesanImportir, alamatKepabeanan;
+    private NoDefaultSpinner
+            rsaContentEncryptionAlgorithmIdentifierField,
+            ecContentEncryptionAlgorithmIdentifierField,
+            rsaKeyEncryptionAlgorithmIdentifierField,
+            ecKeyEncryptionAlgorithmIdentifierField,
+            rsaSignatureAlgorithmIdentifierField,
+            ecSignatureAlgorithmIdentifierField,
+            contentTypePesanImportirField,
+            alamatMitraDagang;
+    private EditText storePasswordField, storeFileField, fromField, as2FromField, as2ToField, subjectField, pesanImportir, algoritmaPubKey;
     private Button storeFileButton;
     private PrivateKey senderPrivateKey;
     private X509Certificate senderPublicKey;
     private X509Certificate recipientPublicKey;
-    private String signatureAlgorithm;
-    private ASN1ObjectIdentifier encryptionOID;
-    private Handler uiThread = new Handler();
-
-    private static byte[] _getAsciiBytes(final String sString) {
-        final char[] aChars = sString.toCharArray();
-        final int nLength = aChars.length;
-        final byte[] ret = new byte[nLength];
-        for (int i = 0; i < nLength; i++)
-            ret[i] = (byte) aChars[i];
-        return ret;
-    }
-
-    private String calculateAndStoreMIC(MimeBodyPart part) {
-        //https://tools.ietf.org/html/rfc5751#section-2.1
-        //DigestAlgorithmIdentifier
-        HashMap<String, ASN1ObjectIdentifier> algoritmaDigest = new HashMap<>();
-        algoritmaDigest.put("sha224", NISTObjectIdentifiers.id_sha224);
-        algoritmaDigest.put("sha256", NISTObjectIdentifiers.id_sha256);
-        algoritmaDigest.put("sha384", NISTObjectIdentifiers.id_sha384);
-        algoritmaDigest.put("sha512", NISTObjectIdentifiers.id_sha512);
-        try {
-            String micAlg = SIGNING_ALGORITHM.get(signatureAlgorithm);
-            MessageDigest md = MessageDigest.getInstance(algoritmaDigest.get(micAlg).getId(), "SC");//perlu canonicalize
-            // Start hashing the header
-            final byte[] aCRLF = new byte[]{'\r', '\n'};
-            final Enumeration<String> aHeaderLines = part.getAllHeaderLines();
-            while (aHeaderLines.hasMoreElements()) {
-                String h = aHeaderLines.nextElement();
-                md.update(_getAsciiBytes(h));
-                md.update(aCRLF);
-            }
-            // The CRLF separator between header and content
-            md.update(aCRLF);
-            // No need to canonicalize here - see issue https://github.com/phax/as2-lib/issues/12
-            try (final DigestOutputStream aDOS = new DigestOutputStream(new NullOutputStream(), md);
-                 final OutputStream aOS = MimeUtility.encode(aDOS, part.getEncoding())) {
-                part.getDataHandler().writeTo(aOS);
-            }
-            // Build result digest array
-            final byte[] aMIC = md.digest();
-            // Perform Base64 encoding and append algorithm ID
-            StringBuffer micResult = new StringBuffer(new String(Base64.encode(aMIC)));
-            micResult.append(", ").append(micAlg);
-            return micResult.toString();
-        } catch (Exception ex) {
-            Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
-            ex.printStackTrace();
-        }
-        return null;
-    }
+    private String recipientPublicKeyAlg;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == FILE_CODE && resultCode == RESULT_OK) {
+            InputStream certIs;
             try {
                 KeyStoreManager mKeyStoreManager = new KeyStoreManager("PKCS12");
-                String storePassword = storePasswordField.getText().toString();
+                String storePassword = this.storePasswordField.getText().toString();
                 if (storePassword.trim().length() < 1) {
-                    storePasswordField.requestFocus();
+                    this.storePasswordField.requestFocus();
                     throw new Exception("Store Password Kosong");
                 }
                 Uri uri = data.getData();
-                mKeyStoreManager.loadKeyStore(getContentResolver().openInputStream(uri), storePasswordField.getText().toString().toCharArray());
-                storeFileField.setText(uri.toString());
+                mKeyStoreManager.loadKeyStore(getContentResolver().openInputStream(uri), this.storePasswordField.getText().toString().toCharArray());
+                this.storeFileField.setText(uri.toString());
                 this.senderPublicKey = mKeyStoreManager.getCertificate();
-                this.senderPublicKey.checkValidity();
+                this.recipientPublicKeyAlg = this.senderPublicKey.getPublicKey().getAlgorithm();
+                if (this.recipientPublicKeyAlg.equals("RSA")) {
+                    certIs = MainActivity.class.getResourceAsStream("/kepabeanan-pub.pem");//untuk SERTIFIKAT IMPORTIR
+                    this.recipientPublicKey = PemUtils.decodeCertificate(certIs);
+                    this.algoritmaPubKey.setText("RSA");
+                    this.rsaContentEncryptionAlgorithmIdentifierField.setVisibility(View.VISIBLE);
+                    this.rsaKeyEncryptionAlgorithmIdentifierField.setVisibility(View.VISIBLE);
+                    this.rsaSignatureAlgorithmIdentifierField.setVisibility(View.VISIBLE);
+                    this.ecContentEncryptionAlgorithmIdentifierField.setVisibility(View.GONE);
+                    this.ecKeyEncryptionAlgorithmIdentifierField.setVisibility(View.GONE);
+                    this.ecSignatureAlgorithmIdentifierField.setVisibility(View.GONE);
+                } else {
+                    certIs = MainActivity.class.getResourceAsStream("/manufaktur-pub.pem");//untuk SERTIFIKAT PEDAGANG
+                    this.recipientPublicKey = PemUtils.decodeCertificate(certIs);
+                    this.algoritmaPubKey.setText("Elliptic Curve");
+                    this.rsaContentEncryptionAlgorithmIdentifierField.setVisibility(View.GONE);
+                    this.rsaKeyEncryptionAlgorithmIdentifierField.setVisibility(View.GONE);
+                    this.rsaSignatureAlgorithmIdentifierField.setVisibility(View.GONE);
+                    this.ecContentEncryptionAlgorithmIdentifierField.setVisibility(View.VISIBLE);
+                    this.ecKeyEncryptionAlgorithmIdentifierField.setVisibility(View.VISIBLE);
+                    this.ecSignatureAlgorithmIdentifierField.setVisibility(View.VISIBLE);
+                }
+                certIs.close();
+                certIs = null;
                 this.senderPrivateKey = mKeyStoreManager.getPrivateKey("".toCharArray());
             } catch (Exception e) {
-                Snackbar.make(mCoordinatorLayout, e.getMessage(), Snackbar.LENGTH_LONG).show();
+                Snackbar.make(this.mCoordinatorLayout, e.getMessage(), Snackbar.LENGTH_LONG).show();
             }
         } else {
-            Snackbar.make(mCoordinatorLayout, "Tidak Jadi", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(this.mCoordinatorLayout, "Tidak Jadi", Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -203,7 +188,6 @@ public class MainActivity extends AppCompatActivity {
         mCoordinatorLayout = findViewById(R.id.koordinatorLayout);
         storePasswordField = findViewById(R.id.storePasswordField);
         storeFileField = findViewById(R.id.storeFileField);
-        alamatKepabeanan = findViewById(R.id.alamatKepabeanan);
         pesanImportir = findViewById(R.id.pesanImportir);
         storeFileButton = findViewById(R.id.storeFileButton);
         storeFileButton.setOnClickListener(new View.OnClickListener() {
@@ -216,8 +200,19 @@ public class MainActivity extends AppCompatActivity {
         });
         fromField = findViewById(R.id.fromField);
         as2ToField = findViewById(R.id.as2ToField);
+        algoritmaPubKey = findViewById(R.id.algoritmaPubKey);
         as2FromField = findViewById(R.id.as2FromField);
         subjectField = findViewById(R.id.subjectField);
+
+        String[] alamatMitra = new String[]{
+                "http://192.168.1.2:5080/spring-boot-smime",
+                "http://10.0.2.2/as2/SecureTransmissionLoop.php",
+                "http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver"
+        };
+
+        ArrayAdapter<String> mdAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, alamatMitra);
+        alamatMitraDagang = findViewById(R.id.alamatMitraDagang);
+        alamatMitraDagang.setAdapter(mdAdapter);
 
         String[] contentTypes = new String[]{
                 "text/plain",
@@ -225,7 +220,8 @@ public class MainActivity extends AppCompatActivity {
                 "application/json",
                 "application/xml",
                 "application/edifact",
-                "application/edi-x12"
+                "application/edi-x12",
+                "application/x-java-serialized-object"
         };
 
         ArrayAdapter<String> ctAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, contentTypes);
@@ -233,94 +229,83 @@ public class MainActivity extends AppCompatActivity {
         contentTypePesanImportirField.setAdapter(ctAdapter);
         contentTypePesanImportirField.setSelection(4);//application/edifact default
 
-        ArrayAdapter<String> encAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, ENCRYPTION_ALGORITHM.keySet().toArray(new String[ENCRYPTION_ALGORITHM.keySet().size()]));
-        encAlgo = findViewById(R.id.contentEncryptionAlgorithmIdentifierField);
-        encAlgo.setAdapter(encAdapter);
+        ArrayAdapter<String> rsaContentEncAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, RSA_CONTENT_ENCRYPTION_ALGORITHM.keySet().toArray(new String[RSA_CONTENT_ENCRYPTION_ALGORITHM.keySet().size()]));
+        rsaContentEncryptionAlgorithmIdentifierField = findViewById(R.id.rsaContentEncryptionAlgorithmIdentifierField);
+        rsaContentEncryptionAlgorithmIdentifierField.setAdapter(rsaContentEncAdapter);
 
-        ArrayAdapter<String> signAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, SIGNING_ALGORITHM.keySet().toArray(new String[SIGNING_ALGORITHM.keySet().size()]));
-        signAlgo = findViewById(R.id.signatureAlgorithmIdentifierField);
-        signAlgo.setAdapter(signAdapter);
+        ArrayAdapter<String> ecContentEncAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, EC_CONTENT_ENCRYPTION_ALGORITHM.keySet().toArray(new String[EC_CONTENT_ENCRYPTION_ALGORITHM.keySet().size()]));
+        ecContentEncryptionAlgorithmIdentifierField = findViewById(R.id.ecContentEncryptionAlgorithmIdentifierField);
+        ecContentEncryptionAlgorithmIdentifierField.setAdapter(ecContentEncAdapter);
 
-        InputStream certIs = MainActivity.class.getResourceAsStream("/kepabeanan-pub.pem");
-        try {
-            this.recipientPublicKey = PemUtils.decodeCertificate(certIs);
-        } catch (Exception ex) {
-        } finally {
-            try {
-                certIs.close();
-                certIs = null;
-            } catch (IOException ex) {
-            }
-        }
+        ArrayAdapter<String> rsaKeyEncAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, RSA_KEY_ENCRYPTION_ALGORITHM.keySet().toArray(new String[RSA_KEY_ENCRYPTION_ALGORITHM.keySet().size()]));
+        rsaKeyEncryptionAlgorithmIdentifierField = findViewById(R.id.rsaKeyEncryptionAlgorithmIdentifierField);
+        rsaKeyEncryptionAlgorithmIdentifierField.setAdapter(rsaKeyEncAdapter);
+
+        ArrayAdapter<String> ecKeyEncAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, EC_KEY_ENCRYPTION_ALGORITHM.keySet().toArray(new String[EC_KEY_ENCRYPTION_ALGORITHM.keySet().size()]));
+        ecKeyEncryptionAlgorithmIdentifierField = findViewById(R.id.ecKeyEncryptionAlgorithmIdentifierField);
+        ecKeyEncryptionAlgorithmIdentifierField.setAdapter(ecKeyEncAdapter);
+
+        ArrayAdapter<String> rsaSignAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, RSA_SIGNING_ALGORITHM.keySet().toArray(new String[RSA_SIGNING_ALGORITHM.keySet().size()]));
+        rsaSignatureAlgorithmIdentifierField = findViewById(R.id.rsaSignatureAlgorithmIdentifierField);
+        rsaSignatureAlgorithmIdentifierField.setAdapter(rsaSignAdapter);
+
+        ArrayAdapter<String> ecSignAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, EC_SIGNING_ALGORITHM.keySet().toArray(new String[EC_SIGNING_ALGORITHM.keySet().size()]));
+        ecSignatureAlgorithmIdentifierField = findViewById(R.id.ecSignatureAlgorithmIdentifierField);
+        ecSignatureAlgorithmIdentifierField.setAdapter(ecSignAdapter);
+
         //inisialisasi
         findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 try {
-                    //validasi form
-                    if (storeFileField.getText().toString().trim().length() < 1) {
-                        storeFileButton.requestFocus();
-                        throw new Exception("Sertifikat belum dimuat");
+                    formValidation();
+                    Future<String> pesan;
+                    if (recipientPublicKeyAlg.equals("RSA")) {
+                        pesan = Srvc.CallSynchronous(
+                                rsaSignatureAlgorithmIdentifierField.getSelectedItem().toString(),
+                                senderPrivateKey,
+                                senderPublicKey,
+                                recipientPublicKey,
+                                pesanImportir.getText().toString().getBytes(StandardCharsets.UTF_8),
+                                contentTypePesanImportirField.getSelectedItem().toString(),
+                                RSA_SIGNING_ALGORITHM.get(rsaSignatureAlgorithmIdentifierField.getSelectedItem().toString()),
+                                RSA_CONTENT_ENCRYPTION_ALGORITHM.get(rsaContentEncryptionAlgorithmIdentifierField.getSelectedItem().toString()),
+                                new JceKeyTransRecipientInfoGenerator(recipientPublicKey,
+                                        RSA_KEY_ENCRYPTION_ALGORITHM.get(rsaKeyEncryptionAlgorithmIdentifierField.getSelectedItem().toString())).setProvider("SC"),
+                                alamatMitraDagang.getSelectedItem().toString(),
+                                fromField.getText().toString(),
+                                as2ToField.getText().toString(),
+                                as2FromField.getText().toString(),
+                                subjectField.getText().toString()
+                        );
+                    } else {
+                        ASN1ObjectIdentifier aoi = EC_KEY_ENCRYPTION_ALGORITHM.get(ecKeyEncryptionAlgorithmIdentifierField.getSelectedItem().toString());
+                        JceKeyAgreeRecipientInfoGenerator rio = new JceKeyAgreeRecipientInfoGenerator(
+                                aoi,
+                                senderPrivateKey,
+                                senderPublicKey.getPublicKey(),
+                                KEY_WRAP_ALGORITHM.get(aoi))
+                                .setProvider("SC");
+                        rio.addRecipient(recipientPublicKey);
+                        pesan = Srvc.CallSynchronous(
+                                ecSignatureAlgorithmIdentifierField.getSelectedItem().toString(),
+                                senderPrivateKey,
+                                senderPublicKey,
+                                recipientPublicKey,
+                                pesanImportir.getText().toString().getBytes(StandardCharsets.UTF_8),
+                                contentTypePesanImportirField.getSelectedItem().toString(),
+                                EC_SIGNING_ALGORITHM.get(ecSignatureAlgorithmIdentifierField.getSelectedItem().toString()),
+                                EC_CONTENT_ENCRYPTION_ALGORITHM.get(ecContentEncryptionAlgorithmIdentifierField.getSelectedItem().toString()),
+                                rio,
+                                alamatMitraDagang.getSelectedItem().toString(),
+                                fromField.getText().toString(),
+                                as2ToField.getText().toString(),
+                                as2FromField.getText().toString(),
+                                subjectField.getText().toString()
+                        );
                     }
-                    if (encAlgo.getSelectedItem() == null) {
-                        encAlgo.requestFocus();
-                        throw new Exception("Algoritma Enkripsi belum dipilih");
-                    }
-                    if (signAlgo.getSelectedItem() == null) {
-                        signAlgo.requestFocus();
-                        throw new Exception("Algoritma Tanda Tangan belum dipilih");
-                    }
-                    if (contentTypePesanImportirField.getSelectedItem() == null) {
-                        contentTypePesanImportirField.requestFocus();
-                        throw new Exception("Content-Type: belum dipilih");
-                    }
-                    String tipeKonten = contentTypePesanImportirField.getSelectedItem().toString();
-                    StringReader stringReader = new StringReader(pesanImportir.getText().toString());
-                    if (tipeKonten.equals("application/xml")) {
-                        try {
-                            XmlPullParser parser = Xml.newPullParser();
-                            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-                            parser.setInput(stringReader);
-                            parser.nextTag();
-                            stringReader.close();
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                            throw new RuntimeException("bukan dokumen XML Valid");
-                        }
-                    }
-                    if (tipeKonten.equals("application/json")) {
-                        try {
-                            JsonReader jsonReader = new JsonReader(stringReader);
-                            jsonReader.hasNext();
-                            stringReader.close();
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                            throw new RuntimeException("bukan dokumen JSON Valid");
-                        }
-                    }
-                    if (tipeKonten.equals("text/csv")) {
-                        try {
-                            CSVFormat.RFC4180.parse(stringReader);
-                            stringReader.close();
-                        } catch (Exception ex) {
-                            throw new RuntimeException("bukan dokumen CSV Valid");
-                        }
-                    }
-                    //if (tipeKonten.equals("application/edifact")), smooks tdk bisa di android
-                    //if (tipeKonten.equals("application/edi-x12")), tidak <em>aware</em> ttg ini
-                    //validasi form
-
-                    signatureAlgorithm = signAlgo.getSelectedItem().toString();
-                    encryptionOID = ENCRYPTION_ALGORITHM.get(encAlgo.getSelectedItem());
-                    new CallSynchronouslyTask().execute(
-                            pesanImportir.getText().toString(),
-                            tipeKonten,
-                            alamatKepabeanan.getText().toString(),
-                            signAlgo.getSelectedItem().toString(),
-                            fromField.getText().toString(),
-                            as2ToField.getText().toString(),
-                            as2FromField.getText().toString(),
-                            subjectField.getText().toString());
+                    TanggapanKepabeananFragment tsf = TanggapanKepabeananFragment.newInstance(pesan.get());
+                    tsf.show(getSupportFragmentManager(), "tanggapan_kepabeanan_fragment");
                 } catch (Exception ex) {
                     Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
                     ex.printStackTrace();
@@ -329,129 +314,80 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private class CallSynchronouslyTask extends AsyncTask<String, Void, String[]> {
-        private String calcMIC;
-
-        @Override
-        protected String[] doInBackground(String... args) {
-            try {
-                String pesanImpor = args[0];
-                InternetHeaders ih = new InternetHeaders();
-                ih.addHeader("Content-Type", args[1].concat("; charset=UTF-8"));
-                SMIMESignedGenerator gen = new SMIMESignedGenerator();
-                SignerInfoGenerator signer = new JcaSimpleSignerInfoGeneratorBuilder()
-                        .setProvider("SC")
-                        .build(signatureAlgorithm, senderPrivateKey, senderPublicKey);
-                gen.addSignerInfoGenerator(signer);
-                //secara default, content-transfer-encoding base64
-                //gen.setContentTransferEncoding("base64");
-                MimeMultipart aSignedData = gen.generate(new MimeBodyPart(ih, pesanImpor.getBytes(StandardCharsets.UTF_8)));
-                // Calculate MIC after sign was handled, because the
-                // message data might change if compression before signing is active.
-                calcMIC = calculateAndStoreMIC(new SMIMESigned(aSignedData).getContent());
-                MimeBodyPart aTmpBody = new MimeBodyPart();
-                aTmpBody.setContent(aSignedData);
-                aTmpBody.setHeader("Content-Type", aSignedData.getContentType());
-                OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(encryptionOID).setProvider("SC").build();
-                JceKeyTransRecipientInfoGenerator infoGenerator = new JceKeyTransRecipientInfoGenerator(recipientPublicKey)
-                        .setProvider("SC");
-                SMIMEEnvelopedGenerator encgen = new SMIMEEnvelopedGenerator();
-                encgen.addRecipientInfoGenerator(infoGenerator);
-                //secara default, content-transfer-encoding base64
-                //encgen.setContentTransferEncoding("base64");
-                MimeBodyPart output = encgen.generate(aTmpBody, encryptor);
-                String domain = args[2];
-                Uri recipientAddress = Uri.parse(domain);
-                HttpURLConnection con = (HttpURLConnection) new URL(domain).openConnection();
-                con.setRequestMethod("POST");
-                con.setDoInput(true);
-                con.setDoOutput(true);
-                con.setRequestProperty("Connection", "close");
-                con.setRequestProperty("Mime-Version", "1.0");
-                con.setRequestProperty("AS2-Version", "1.1");
-                //Meminta Balasan secara Asinkron
-                //con.setRequestProperty("Receipt-Delivery-Option", "http://balasan-MDN-asinkron.com:8080");
-                con.setRequestProperty("Disposition-Notification-Options",
-                        "signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional, " + SIGNING_ALGORITHM.get(args[3]));
-                con.setRequestProperty("Disposition-Notification-To",
-                        args[4]);//ask receiving UA, to issue an MDN
-                con.setRequestProperty("From",
-                        args[4]);
-                con.setRequestProperty("AS2-To",
-                        args[5]);
-                con.setRequestProperty("AS2-From",
-                        args[6]);
-                con.setRequestProperty("Subject",
-                        args[7]);
-                con.setRequestProperty("Recipient-Address",
-                        recipientAddress.getScheme() + "://" + recipientAddress.getAuthority());
-                con.setRequestProperty("Message-Id",
-                        "<github-dawud-tan-RetrofitSmime-" + new SimpleDateFormat("ddMMyyyyHHmmssZ").format(new Date()) + "-" + new Random().nextLong() + "@mycompanyAS2_mendelsontestAS2>");
-                con.setRequestProperty("Content-Type",
-                        output.getContentType());
-                //https://tools.ietf.org/html/rfc3851#section-3.2.1
-                //3.2.1.  The name and filename Parameters
-                con.setRequestProperty("Content-Disposition",
-                        "attachment; filename=\"smime.p7m\"");
-                //https://tools.ietf.org/html/rfc4130#section-5.2.1
-                //5.2.1.  Content-Transfer-Encoding Not Used in HTTP Transport
-                //tidak tahu cara menangani Content-Transfer-Encoding = binary di php
-                //bila fungsi openssl_pkcs7_* bisa diberi clue kalau inputan berbentuk DER, pasti bisa
-                con.setRequestProperty("Content-Transfer-Encoding",
-                        "base64");
-                ByteArrayOutputStream temp = new ByteArrayOutputStream();
-                output.writeTo(temp);//include header
-                String postData = new String(temp.toByteArray()).split("\\r\\n?\\r\\n")[1];
-                byte[] dataToPost = postData.getBytes(StandardCharsets.UTF_8);
-                int postDataLength = dataToPost.length;
-                con.setRequestProperty("Content-Length", Integer.toString(postDataLength));
-                OutputStream os = con.getOutputStream();
-                os.write(dataToPost);
-                os.close();
-                return new String[]{new Scanner(con.getInputStream()).useDelimiter("\\A").next(), con.getContentType()};
-            } catch (final Exception ex) {
-                uiThread.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
-                    }
-                });
-                ex.printStackTrace();
-            }
-            return null;
+    private void formValidation() throws Exception {
+        //validasi form
+        if (alamatMitraDagang.getSelectedItem() == null) {
+            alamatMitraDagang.requestFocus();
+            throw new Exception("Alamat Mitra Dagang belum ditentukan");
         }
-
-        @Override
-        protected void onPostExecute(final String[] data) {
+        if (storeFileField.getText().toString().trim().length() < 1) {
+            storeFileButton.requestFocus();
+            throw new Exception("Sertifikat belum dimuat");
+        }
+        if (recipientPublicKeyAlg.equals("RSA")) {
+            if (rsaContentEncryptionAlgorithmIdentifierField.getSelectedItem() == null) {
+                rsaContentEncryptionAlgorithmIdentifierField.requestFocus();
+                throw new Exception("Algoritma Enkripsi Konten belum dipilih");
+            }
+            if (rsaKeyEncryptionAlgorithmIdentifierField.getSelectedItem() == null) {
+                rsaKeyEncryptionAlgorithmIdentifierField.requestFocus();
+                throw new Exception("Algoritma Enkripsi Kunci belum dipilih");
+            }
+            if (rsaSignatureAlgorithmIdentifierField.getSelectedItem() == null) {
+                rsaSignatureAlgorithmIdentifierField.requestFocus();
+                throw new Exception("Algoritma Tanda Tangan belum dipilih");
+            }
+        } else {
+            if (ecContentEncryptionAlgorithmIdentifierField.getSelectedItem() == null) {
+                ecContentEncryptionAlgorithmIdentifierField.requestFocus();
+                throw new Exception("Algoritma Enkripsi Konten belum dipilih");
+            }
+            if (ecKeyEncryptionAlgorithmIdentifierField.getSelectedItem() == null) {
+                ecKeyEncryptionAlgorithmIdentifierField.requestFocus();
+                throw new Exception("Algoritma Enkripsi Kunci belum dipilih");
+            }
+            if (ecSignatureAlgorithmIdentifierField.getSelectedItem() == null) {
+                ecSignatureAlgorithmIdentifierField.requestFocus();
+                throw new Exception("Algoritma Tanda Tangan belum dipilih");
+            }
+        }
+        if (contentTypePesanImportirField.getSelectedItem() == null) {
+            contentTypePesanImportirField.requestFocus();
+            throw new Exception("Content-Type: belum dipilih");
+        }
+        String tipeKonten = contentTypePesanImportirField.getSelectedItem().toString();
+        StringReader stringReader = new StringReader(pesanImportir.getText().toString());
+        if (tipeKonten.equals("application/xml")) {
             try {
-                ByteArrayDataSource ds = new ByteArrayDataSource(data[0], data[1]);
-                MimeMultipart body = new MimeMultipart(ds);
-                final MimeBodyPart mbp = (MimeBodyPart) body.getBodyPart(0);
-                MultipartReport multipartReport = new MultipartReport(new MimePartDataSource(mbp));
-                StringBuilder sb = new StringBuilder("<h5>Pesan</h5><p>");
-                sb.append(multipartReport.getBodyPart(0).getContent());
-                sb.append("</p><hr>");
-                DispositionNotification dn = new DispositionNotification(multipartReport.getBodyPart(1).getInputStream());
-                InternetHeaders ihir = dn.getNotifications();
-                sb.append("<h5>Digest lokal</h5><p>");
-                sb.append(calcMIC);
-                sb.append("</p><hr>");
-                sb.append("<h5>Digest remote</h5><p>");
-                sb.append(ihir.getHeader("Received-Content-MIC")[0]);
-                sb.append("</p><hr>");
-                SMIMESigned signed = new SMIMESigned(body);
-                SignerInformationStore signers = signed.getSignerInfos();
-                SignerInformation signeri = signers.getSigners().iterator().next();
-                boolean hasil = signeri.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("SC").build(recipientPublicKey.getPublicKey()));
-                String bls = sb.toString();
-                if (!hasil)
-                    throw new RuntimeException("TTD tidak valid");
-                TanggapanKepabeananFragment tsf = TanggapanKepabeananFragment.newInstance(bls);
-                tsf.show(getSupportFragmentManager(), "tanggapan_kepabeanan_fragment");
+                XmlPullParser parser = Xml.newPullParser();
+                parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+                parser.setInput(stringReader);
+                parser.nextTag();
+                stringReader.close();
             } catch (Exception ex) {
-                Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
                 ex.printStackTrace();
+                throw new RuntimeException("bukan dokumen XML Valid");
             }
         }
+        if (tipeKonten.equals("application/json")) {
+            try {
+                JsonReader jsonReader = new JsonReader(stringReader);
+                jsonReader.hasNext();
+                stringReader.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                throw new RuntimeException("bukan dokumen JSON Valid");
+            }
+        }
+        if (tipeKonten.equals("text/csv")) {
+            try {
+                CSVFormat.RFC4180.parse(stringReader);
+                stringReader.close();
+            } catch (Exception ex) {
+                throw new RuntimeException("bukan dokumen CSV Valid");
+            }
+        }
+        //if (tipeKonten.equals("application/edifact")), smooks tdk bisa di android
+        //if (tipeKonten.equals("application/edi-x12")), tidak <em>aware</em> ttg ini
     }
 }

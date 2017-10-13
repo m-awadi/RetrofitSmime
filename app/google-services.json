@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "744295600034",
+    "firebase_url": "https://ediint-as2.firebaseio.com",
+    "project_id": "ediint-as2",
+    "storage_bucket": "ediint-as2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744295600034:android:0d79c79f01be61f6",
+        "android_client_info": {
+          "package_name": "id.co.blogspot.datacomlink.ediint"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744295600034-sa3f7d1rto6d9d4f9b0hph60bahljido.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "744295600034-ub37ekfdbnp8h60ps4u7krm4jd0c2p6u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "id.co.blogspot.datacomlink.ediint",
+            "certificate_hash": "5b6590fa05622c7b616813f8af5ade308f496b70"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDv6w7JthSk4cFnz_60eNAuEVioFNCCKIc"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744295600034-sa3f7d1rto6d9d4f9b0hph60bahljido.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
