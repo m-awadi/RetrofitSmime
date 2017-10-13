@@ -79,6 +79,10 @@ public class MainActivity extends AppCompatActivity {
         KEY_WRAP_ALGORITHM.put(SECObjectIdentifiers.dhSinglePass_stdDH_sha256kdf_scheme, NISTObjectIdentifiers.id_aes128_wrap);
         EC_KEY_ENCRYPTION_ALGORITHM.put("dhSinglePass-stdDH-sha384kdf-scheme", SECObjectIdentifiers.dhSinglePass_stdDH_sha384kdf_scheme);
         KEY_WRAP_ALGORITHM.put(SECObjectIdentifiers.dhSinglePass_stdDH_sha384kdf_scheme, NISTObjectIdentifiers.id_aes256_wrap);
+        EC_KEY_ENCRYPTION_ALGORITHM.put("dhSinglePass-cofactorDH-sha256kdf-scheme", SECObjectIdentifiers.dhSinglePass_cofactorDH_sha256kdf_scheme);
+        KEY_WRAP_ALGORITHM.put(SECObjectIdentifiers.dhSinglePass_cofactorDH_sha256kdf_scheme, NISTObjectIdentifiers.id_aes128_wrap);
+        EC_KEY_ENCRYPTION_ALGORITHM.put("dhSinglePass-cofactorDH-sha384kdf-scheme", SECObjectIdentifiers.dhSinglePass_cofactorDH_sha384kdf_scheme);
+        KEY_WRAP_ALGORITHM.put(SECObjectIdentifiers.dhSinglePass_cofactorDH_sha384kdf_scheme, NISTObjectIdentifiers.id_aes256_wrap);
 //UNTUK ELLIPTIC CURVE
 
         //https://tools.ietf.org/html/rfc5751#section-2.7
