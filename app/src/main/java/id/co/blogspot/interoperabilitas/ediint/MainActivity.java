@@ -146,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
                 this.senderPublicKey = mKeyStoreManager.getCertificate();
                 this.recipientPublicKeyAlg = this.senderPublicKey.getPublicKey().getAlgorithm();
                 if (this.recipientPublicKeyAlg.equals("RSA")) {
-                    certIs = MainActivity.class.getResourceAsStream("/kepabeanan-pub.pem");//untuk SERTIFIKAT IMPORTIR
+                    certIs = MainActivity.class.getResourceAsStream("/kepabeanan.crt");//untuk SERTIFIKAT IMPORTIR
                     this.recipientPublicKey = PemUtils.decodeCertificate(certIs);
                     this.algoritmaPubKey.setText("RSA");
                     this.rsaContentEncryptionAlgorithmIdentifierField.setVisibility(View.VISIBLE);
@@ -156,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
                     this.ecKeyEncryptionAlgorithmIdentifierField.setVisibility(View.GONE);
                     this.ecSignatureAlgorithmIdentifierField.setVisibility(View.GONE);
                 } else {
-                    certIs = MainActivity.class.getResourceAsStream("/manufaktur-pub.pem");//untuk SERTIFIKAT PEDAGANG
+                    certIs = MainActivity.class.getResourceAsStream("/manufaktur.crt");//untuk SERTIFIKAT PEDAGANG
                     this.recipientPublicKey = PemUtils.decodeCertificate(certIs);
                     this.algoritmaPubKey.setText("Elliptic Curve");
                     this.rsaContentEncryptionAlgorithmIdentifierField.setVisibility(View.GONE);
