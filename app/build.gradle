@@ -1,28 +1,33 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion "26.0.2"
+    compileSdkVersion 27
+    buildToolsVersion "27.0.0"
+
     defaultConfig {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
-        targetSdkVersion 26
-        versionCode 35
-        versionName "3.5.3"
+        targetSdkVersion 27
+        versionCode 36
+        versionName "3.5.4"
         multiDexEnabled true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
 dependencies {
-    compile group: 'com.android.support', name: 'multidex', version: '1.0.2'
-    androidTestCompile group: 'com.android.support', name: 'multidex', version: '1.0.2'
-    compile group: 'com.android.support', name: 'appcompat-v7', version: '26.1.0'
-    compile group: 'com.android.support', name: 'design', version: '26.1.0'
-    compile group: 'com.google.firebase', name: 'firebase-ads', version: '11.4.2'
-    compile group: 'org.apache.commons', name: 'commons-csv', version: '1.5'//rfc 4180
-    compile group: 'com.nononsenseapps', name: 'filepicker', version: '4.1.0'
-    compile group: 'com.madgag.spongycastle', name: 'prov', version: '1.58.0.0'
-    compile group: 'com.sun.mail', name: 'android-mail', version: '1.6.0'
-    compile project(':bcmail-jdk15on')//S/MIME v.3.1 rfc 3851
+    api group: 'com.android.support', name: 'multidex', version: '1.0.2'
+    api group: 'com.android.support', name: 'appcompat-v7', version: '27.0.0'
+    api group: 'com.android.support', name: 'design', version: '27.0.0'
+    api group: 'com.google.firebase', name: 'firebase-ads', version: '11.4.2'
+    api group: 'org.apache.commons', name: 'commons-csv', version: '1.5'//rfc 4180
+    api group: 'com.nononsenseapps', name: 'filepicker', version: '4.1.0'
+    api group: 'com.madgag.spongycastle', name: 'prov', version: '1.58.0.0'
+    api group: 'com.sun.mail', name: 'android-mail', version: '1.6.0'
+    api project(':bcmail-jdk15on')//S/MIME v.3.1 rfc 3851
 }
 apply plugin: 'com.google.gms.google-services'

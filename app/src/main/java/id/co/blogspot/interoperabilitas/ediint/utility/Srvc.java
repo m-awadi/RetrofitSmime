@@ -85,7 +85,7 @@ public class Srvc {
         // Build result digest array
         final byte[] aMIC = md.digest();
         // Perform Base64 encoding and append algorithm ID
-        StringBuffer micResult = new StringBuffer(new String(Base64.encode(aMIC)));
+        StringBuilder micResult = new StringBuilder(new String(Base64.encode(aMIC)));
         micResult.append(", ").append(micAlg);
         return micResult.toString();
 

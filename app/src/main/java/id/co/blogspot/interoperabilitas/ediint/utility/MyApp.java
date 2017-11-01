@@ -14,14 +14,11 @@ public class MyApp extends MultiDexApplication {
     @Override
     public void onCreate() {
         super.onCreate();
-        URLConnection.setContentHandlerFactory(new ContentHandlerFactory() {
-            @Override
-            public ContentHandler createContentHandler(String mimetype) {
-                if (mimetype.startsWith("multipart/signed")) {
-                    return new MultipartSigned();
-                }
-                return null;
+        URLConnection.setContentHandlerFactory(mimetype -> {
+            if (mimetype.startsWith("multipart/signed")) {
+                return new MultipartSigned();
             }
+            return null;
         });
     }
 }

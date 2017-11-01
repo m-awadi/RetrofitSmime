@@ -194,13 +194,10 @@ public class MainActivity extends AppCompatActivity {
         storeFileField = findViewById(R.id.storeFileField);
         pesanImportir = findViewById(R.id.pesanImportir);
         storeFileButton = findViewById(R.id.storeFileButton);
-        storeFileButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(MainActivity.this, MyPickerActivity.class);
-                i.putExtra(FilePickerActivity.EXTRA_START_PATH, Environment.getExternalStorageDirectory().getPath() + "/Download");
-                startActivityForResult(i, FILE_CODE);
-            }
+        storeFileButton.setOnClickListener(v -> {
+            Intent i = new Intent(MainActivity.this, MyPickerActivity.class);
+            i.putExtra(FilePickerActivity.EXTRA_START_PATH, Environment.getExternalStorageDirectory().getPath() + "/Download");
+            startActivityForResult(i, FILE_CODE);
         });
         fromField = findViewById(R.id.fromField);
         as2ToField = findViewById(R.id.as2ToField);
@@ -208,11 +205,7 @@ public class MainActivity extends AppCompatActivity {
         as2FromField = findViewById(R.id.as2FromField);
         subjectField = findViewById(R.id.subjectField);
 
-        String[] alamatMitra = new String[]{
-                "http://192.168.1.2:5080/spring-boot-smime",
-                "http://10.0.2.2/as2/SecureTransmissionLoop.php",
-                "http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver"
-        };
+        String[] alamatMitra = getResources().getStringArray(R.array.alamat_server);
 
         ArrayAdapter<String> mdAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, android.R.id.text1, alamatMitra);
         alamatMitraDagang = findViewById(R.id.alamatMitraDagang);
@@ -258,62 +251,59 @@ public class MainActivity extends AppCompatActivity {
         ecSignatureAlgorithmIdentifierField.setAdapter(ecSignAdapter);
 
         //inisialisasi
-        findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    formValidation();
-                    Future<String> pesan;
-                    if (recipientPublicKeyAlg.equals("RSA")) {
-                        pesan = Srvc.CallSynchronous(
-                                rsaSignatureAlgorithmIdentifierField.getSelectedItem().toString(),
-                                senderPrivateKey,
-                                senderPublicKey,
-                                recipientPublicKey,
-                                pesanImportir.getText().toString().getBytes(StandardCharsets.UTF_8),
-                                contentTypePesanImportirField.getSelectedItem().toString(),
-                                RSA_SIGNING_ALGORITHM.get(rsaSignatureAlgorithmIdentifierField.getSelectedItem().toString()),
-                                RSA_CONTENT_ENCRYPTION_ALGORITHM.get(rsaContentEncryptionAlgorithmIdentifierField.getSelectedItem().toString()),
-                                new JceKeyTransRecipientInfoGenerator(recipientPublicKey,
-                                        RSA_KEY_ENCRYPTION_ALGORITHM.get(rsaKeyEncryptionAlgorithmIdentifierField.getSelectedItem().toString())).setProvider("SC"),
-                                alamatMitraDagang.getSelectedItem().toString(),
-                                fromField.getText().toString(),
-                                as2ToField.getText().toString(),
-                                as2FromField.getText().toString(),
-                                subjectField.getText().toString()
-                        );
-                    } else {
-                        ASN1ObjectIdentifier aoi = EC_KEY_ENCRYPTION_ALGORITHM.get(ecKeyEncryptionAlgorithmIdentifierField.getSelectedItem().toString());
-                        JceKeyAgreeRecipientInfoGenerator rio = new JceKeyAgreeRecipientInfoGenerator(
-                                aoi,
-                                senderPrivateKey,
-                                senderPublicKey.getPublicKey(),
-                                KEY_WRAP_ALGORITHM.get(aoi))
-                                .setProvider("SC");
-                        rio.addRecipient(recipientPublicKey);
-                        pesan = Srvc.CallSynchronous(
-                                ecSignatureAlgorithmIdentifierField.getSelectedItem().toString(),
-                                senderPrivateKey,
-                                senderPublicKey,
-                                recipientPublicKey,
-                                pesanImportir.getText().toString().getBytes(StandardCharsets.UTF_8),
-                                contentTypePesanImportirField.getSelectedItem().toString(),
-                                EC_SIGNING_ALGORITHM.get(ecSignatureAlgorithmIdentifierField.getSelectedItem().toString()),
-                                EC_CONTENT_ENCRYPTION_ALGORITHM.get(ecContentEncryptionAlgorithmIdentifierField.getSelectedItem().toString()),
-                                rio,
-                                alamatMitraDagang.getSelectedItem().toString(),
-                                fromField.getText().toString(),
-                                as2ToField.getText().toString(),
-                                as2FromField.getText().toString(),
-                                subjectField.getText().toString()
-                        );
-                    }
-                    TanggapanKepabeananFragment tsf = TanggapanKepabeananFragment.newInstance(pesan.get());
-                    tsf.show(getSupportFragmentManager(), "tanggapan_kepabeanan_fragment");
-                } catch (Exception ex) {
-                    Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
-                    ex.printStackTrace();
+        findViewById(R.id.fab).setOnClickListener(view -> {
+            try {
+                formValidation();
+                Future<String> pesan;
+                if (recipientPublicKeyAlg.equals("RSA")) {
+                    pesan = Srvc.CallSynchronous(
+                            rsaSignatureAlgorithmIdentifierField.getSelectedItem().toString(),
+                            senderPrivateKey,
+                            senderPublicKey,
+                            recipientPublicKey,
+                            pesanImportir.getText().toString().getBytes(StandardCharsets.UTF_8),
+                            contentTypePesanImportirField.getSelectedItem().toString(),
+                            RSA_SIGNING_ALGORITHM.get(rsaSignatureAlgorithmIdentifierField.getSelectedItem().toString()),
+                            RSA_CONTENT_ENCRYPTION_ALGORITHM.get(rsaContentEncryptionAlgorithmIdentifierField.getSelectedItem().toString()),
+                            new JceKeyTransRecipientInfoGenerator(recipientPublicKey,
+                                    RSA_KEY_ENCRYPTION_ALGORITHM.get(rsaKeyEncryptionAlgorithmIdentifierField.getSelectedItem().toString())).setProvider("SC"),
+                            alamatMitraDagang.getSelectedItem().toString(),
+                            fromField.getText().toString(),
+                            as2ToField.getText().toString(),
+                            as2FromField.getText().toString(),
+                            subjectField.getText().toString()
+                    );
+                } else {
+                    ASN1ObjectIdentifier aoi = EC_KEY_ENCRYPTION_ALGORITHM.get(ecKeyEncryptionAlgorithmIdentifierField.getSelectedItem().toString());
+                    JceKeyAgreeRecipientInfoGenerator rio = new JceKeyAgreeRecipientInfoGenerator(
+                            aoi,
+                            senderPrivateKey,
+                            senderPublicKey.getPublicKey(),
+                            KEY_WRAP_ALGORITHM.get(aoi))
+                            .setProvider("SC");
+                    rio.addRecipient(recipientPublicKey);
+                    pesan = Srvc.CallSynchronous(
+                            ecSignatureAlgorithmIdentifierField.getSelectedItem().toString(),
+                            senderPrivateKey,
+                            senderPublicKey,
+                            recipientPublicKey,
+                            pesanImportir.getText().toString().getBytes(StandardCharsets.UTF_8),
+                            contentTypePesanImportirField.getSelectedItem().toString(),
+                            EC_SIGNING_ALGORITHM.get(ecSignatureAlgorithmIdentifierField.getSelectedItem().toString()),
+                            EC_CONTENT_ENCRYPTION_ALGORITHM.get(ecContentEncryptionAlgorithmIdentifierField.getSelectedItem().toString()),
+                            rio,
+                            alamatMitraDagang.getSelectedItem().toString(),
+                            fromField.getText().toString(),
+                            as2ToField.getText().toString(),
+                            as2FromField.getText().toString(),
+                            subjectField.getText().toString()
+                    );
                 }
+                TanggapanKepabeananFragment tsf = TanggapanKepabeananFragment.newInstance(pesan.get());
+                tsf.show(getSupportFragmentManager(), "tanggapan_kepabeanan_fragment");
+            } catch (Exception ex) {
+                Snackbar.make(mCoordinatorLayout, ex.getMessage(), Snackbar.LENGTH_LONG).show();
+                ex.printStackTrace();
             }
         });
     }

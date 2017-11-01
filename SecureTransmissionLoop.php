@@ -28,10 +28,10 @@ file_put_contents($encrypted_temp, $encrypted);
 $decrypted = tempnam('', 'dec');
 
 //load server's public key
-$server_public_key = file_get_contents(__DIR__.'/kepabeanan-pub.pem');
+$server_public_key = file_get_contents(__DIR__.'/kepabeanan.crt');
 
 //load server's public key
-$server_private_key = file_get_contents(__DIR__.'/kepabeanan-priv.pem');
+$server_private_key = file_get_contents(__DIR__.'/kepabeanan.key');
 
 //decrypt the encrypted content, and store it to @$encrypted_conten
 //beware, openssl doesn't support RC2/68 encryption algorithm
@@ -43,7 +43,7 @@ $outfilename = tempnam('', 'outfilename');
 
 //verify the signed content using the sender public key
 //public key may be obtained from any store identified by AS2-From header value
-openssl_pkcs7_verify($decrypted, PKCS7_NOVERIFY | PKCS7_NOINTERN | PKCS7_NOCHAIN, $outfilename, array(), __DIR__.'/importir-pub.pem', $content_temp);
+openssl_pkcs7_verify($decrypted, PKCS7_NOVERIFY | PKCS7_NOINTERN | PKCS7_NOCHAIN, $outfilename, array(), __DIR__.'/importir.crt', $content_temp);
 $customs_dec_msg = file_get_contents($content_temp);
 file_put_contents('./pemberitahuan_impor_barang.txt', $customs_dec_msg);
 @unlink($content_temp);

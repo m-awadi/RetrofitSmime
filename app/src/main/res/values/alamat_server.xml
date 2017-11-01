@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array
+        name="alamat_server">
+        <item>http://192.168.1.2:5080/spring-boot-smime</item>
+        <item>http://192.168.1.2/as2/SecureTransmissionLoop.php</item>
+        <item>http://testas2.mendelson-e-c.com:8080/as2/HttpReceiver</item>
+    </string-array>
+</resources>
