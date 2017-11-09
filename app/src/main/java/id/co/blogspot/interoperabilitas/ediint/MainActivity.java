@@ -88,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
         //https://tools.ietf.org/html/rfc5751#section-2.7
         //ContentEncryptionAlgorithmIdentifier
         //openssl rc2 68 bit tidak ada, simetris
+        RSA_CONTENT_ENCRYPTION_ALGORITHM.put("tripleDES", PKCSObjectIdentifiers.des_EDE3_CBC);
         RSA_CONTENT_ENCRYPTION_ALGORITHM.put("AES128_CBC", NISTObjectIdentifiers.id_aes128_CBC);//default
         RSA_CONTENT_ENCRYPTION_ALGORITHM.put("AES256_CBC", NISTObjectIdentifiers.id_aes256_CBC);
 
@@ -101,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
         //https://tools.ietf.org/html/rfc5751#section-2.2
         //SignatureAlgorithmIdentifier
         //openssl syntax-nya masih pakai RFC3851, blm rfc 5751
+        RSA_SIGNING_ALGORITHM.put("md5withRSA", "md5");
+        RSA_SIGNING_ALGORITHM.put("sha1withRSA", "sha1");
         RSA_SIGNING_ALGORITHM.put("sha256withRSA", "sha256");
         RSA_SIGNING_ALGORITHM.put("sha384withRSA", "sha384");
         RSA_SIGNING_ALGORITHM.put("sha256withRSAandMGF1", "sha256");

@@ -47,11 +47,6 @@ public class TanggapanKepabeananFragment extends DialogFragment {
 
         balasanServer.requestFocus();
         sembunyikan = view.findViewById(R.id.sembunyikan);
-        sembunyikan.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                TanggapanKepabeananFragment.this.dismiss();
-            }
-        });
+        sembunyikan.setOnClickListener(view1 -> TanggapanKepabeananFragment.this.dismiss());
     }
 }
