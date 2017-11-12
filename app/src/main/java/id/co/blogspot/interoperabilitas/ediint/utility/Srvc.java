@@ -67,7 +67,6 @@ public class Srvc {
         //DigestAlgorithmIdentifier
         HashMap<String, ASN1ObjectIdentifier> algoritmaDigest = new HashMap<>();
         algoritmaDigest.put("md5", PKCSObjectIdentifiers.md5);
-        algoritmaDigest.put("sha1", OIWObjectIdentifiers.idSHA1);
         algoritmaDigest.put("sha256", NISTObjectIdentifiers.id_sha256);
         algoritmaDigest.put("sha384", NISTObjectIdentifiers.id_sha384);
         MessageDigest md = MessageDigest.getInstance(algoritmaDigest.get(micAlg).getId(), "SC");//perlu canonicalize
