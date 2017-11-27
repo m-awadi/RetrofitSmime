@@ -1,5 +1,5 @@
 # RetrofitSmime
-Android app that show how to use Spongycastle S/MIME package to send an AS2-Message (RFC 4130), this project use Android Studio 3.0.0
+Android app that show how to use Spongycastle S/MIME package to send an AS2-Message (RFC 4130), this project use Android Studio 3.0.1
 
 You could send signed & encrypted Customs declaration message using this certificate '[importir.p12](https://github.com/dawud-tan/RetrofitSmime/raw/master/importir.p12)', the passphrase is `test`
 
