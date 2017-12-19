@@ -12,6 +12,7 @@ import java.io.StringWriter;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
@@ -26,9 +27,11 @@ public class KeyStoreManager {
 
     public KeyStoreManager(String tipe) throws LoginException {
         try {
-            this.keyStore = KeyStore.getInstance(tipe);
+            this.keyStore = KeyStore.getInstance(tipe, "SC");
         } catch (KeyStoreException ex) {
             throw new LoginException(ex.getMessage());
+        } catch (NoSuchProviderException e) {
+            e.printStackTrace();
         }
     }
 

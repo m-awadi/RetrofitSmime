@@ -8,19 +8,30 @@ android {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
         targetSdkVersion 27
-        versionCode 41
-        versionName "3.6.0"
-        multiDexEnabled true
+        versionCode 42
+        versionName "3.6.1"
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    buildTypes {
+        debug {
+            minifyEnabled true
+            useProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
 }
 
 dependencies {
-    api group: 'com.android.support', name: 'multidex', version: '1.0.2'
     api group: 'com.android.support', name: 'appcompat-v7', version: '27.0.2'
     api group: 'com.android.support', name: 'design', version: '27.0.2'
     api group: 'com.google.firebase', name: 'firebase-ads', version: '11.6.2'

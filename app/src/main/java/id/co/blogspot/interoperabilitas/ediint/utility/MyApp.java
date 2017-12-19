@@ -4,13 +4,11 @@ package id.co.blogspot.interoperabilitas.ediint.utility;
  * Created by dawud_tan on 10/8/17.
  */
 
-import android.support.multidex.MultiDexApplication;
+import android.app.Application;
 
-import java.net.ContentHandler;
-import java.net.ContentHandlerFactory;
 import java.net.URLConnection;
 
-public class MyApp extends MultiDexApplication {
+public class MyApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
