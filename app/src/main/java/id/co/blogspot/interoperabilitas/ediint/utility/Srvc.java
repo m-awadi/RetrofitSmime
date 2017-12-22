@@ -4,7 +4,6 @@ import android.net.Uri;
 
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
 import org.spongycastle.asn1.nist.NISTObjectIdentifiers;
-import org.spongycastle.asn1.oiw.OIWObjectIdentifiers;
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.spongycastle.cms.RecipientInfoGenerator;
 import org.spongycastle.cms.SignerInfoGenerator;
@@ -35,7 +34,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -95,19 +93,19 @@ public class Srvc {
     }
 
     public static Future<String> CallSynchronous(final String signatureAlg,
-                                                  final PrivateKey senderPrivateKey,
-                                                  final X509Certificate senderPublicKey,
-                                                  final X509Certificate recipientPublicKey,
-                                                  final byte[] content,
-                                                  final String contentType,
-                                                  final String micAlg,
-                                                  final ASN1ObjectIdentifier contentEncryptionOID,
-                                                  final RecipientInfoGenerator recipientInfoGen,
-                                                  final String alamatKepabeanan,
-                                                  final String from,
-                                                  final String as2to,
-                                                  final String as2from,
-                                                  final String subject) {
+                                                 final PrivateKey senderPrivateKey,
+                                                 final X509Certificate senderPublicKey,
+                                                 final X509Certificate recipientPublicKey,
+                                                 final byte[] content,
+                                                 final String contentType,
+                                                 final String micAlg,
+                                                 final ASN1ObjectIdentifier contentEncryptionOID,
+                                                 final RecipientInfoGenerator recipientInfoGen,
+                                                 final String alamatKepabeanan,
+                                                 final String from,
+                                                 final String as2to,
+                                                 final String as2from,
+                                                 final String subject) {
 
         return es.submit(() -> {
             InternetHeaders ih = new InternetHeaders();
@@ -192,7 +190,8 @@ public class Srvc {
             sb.append(ksg.getContent());
             sb.append("</p><hr>");
             BodyPart headers = aReportParts.getBodyPart(1);
-            InternetHeaders ihir = new InternetHeaders(headers.getInputStream());
+            String mdnEncoding = headers.getHeader("Content-Transfer-Encoding")[0];
+            InternetHeaders ihir = new InternetHeaders(MimeUtility.decode(headers.getInputStream(), mdnEncoding));
             sb.append("<h5>Digest lokal</h5><p>");
             sb.append(calcMIC);
             sb.append("</p><hr>");

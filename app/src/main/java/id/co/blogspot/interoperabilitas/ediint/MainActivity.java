@@ -172,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
                 certIs = null;
                 this.senderPrivateKey = mKeyStoreManager.getPrivateKey("".toCharArray());
             } catch (Exception e) {
+                e.printStackTrace();
                 Snackbar.make(this.mCoordinatorLayout, e.getMessage(), Snackbar.LENGTH_LONG).show();
             }
         } else {
