@@ -3,12 +3,14 @@ package org.spongycastle.mail.smime;
 import org.spongycastle.cms.CMSEnvelopedGenerator;
 import org.spongycastle.util.Strings;
 
+import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.mail.Header;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
 import javax.mail.Session;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -91,5 +93,59 @@ public class SMIMEGenerator {
         }
 
         return content;
+    }
+
+    /**
+     * extract an appropriate body part from the passed in MimeMessage
+     */
+    protected MimeBodyPart makeContentBodyPart(
+            MimeMessage message)
+            throws SMIMEException {
+        MimeBodyPart content = new MimeBodyPart();
+
+        //
+        // add the headers to the body part.
+        //
+        try {
+            message.removeHeader("Message-Id");
+            message.removeHeader("Mime-Version");
+
+            // JavaMail has a habit of reparsing some content types, if the bodypart is
+            // a multipart it might be signed, we rebuild the body part using the raw input stream for the message.
+            try {
+                if (message.getContent() instanceof Multipart) {
+                    content.setContent(message.getRawInputStream(), message.getContentType());
+
+                    extractHeaders(content, message);
+
+                    return content;
+                }
+            } catch (MessagingException e) {
+                // fall back to usual method below
+            }
+
+            content.setContent(message.getContent(), message.getContentType());
+
+            content.setDataHandler(message.getDataHandler());
+
+            extractHeaders(content, message);
+        } catch (MessagingException e) {
+            throw new SMIMEException("exception saving message state.", e);
+        } catch (IOException e) {
+            throw new SMIMEException("exception getting message content.", e);
+        }
+
+        return content;
+    }
+
+    private void extractHeaders(MimeBodyPart content, MimeMessage message)
+            throws MessagingException {
+        Enumeration e = message.getAllHeaders();
+
+        while (e.hasMoreElements()) {
+            Header hdr = (Header) e.nextElement();
+
+            content.addHeader(hdr.getName(), hdr.getValue());
+        }
     }
 }

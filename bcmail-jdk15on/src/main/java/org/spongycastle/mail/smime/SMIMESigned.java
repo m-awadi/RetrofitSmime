@@ -1,6 +1,7 @@
 package org.spongycastle.mail.smime;
 
 import org.spongycastle.cms.CMSException;
+import org.spongycastle.cms.CMSProcessable;
 import org.spongycastle.cms.CMSSignedData;
 
 import java.io.IOException;
@@ -99,6 +100,30 @@ public class SMIMESigned
             return bodyPart.getInputStream();
         } catch (IOException e) {
             throw new MessagingException("can't extract input stream: " + e);
+        }
+    }
+
+    /**
+     * base constructor for a signed message with encapsulated content.
+     *
+     * @throws MessagingException on an error extracting the signature or
+     *                            otherwise processing the message.
+     * @throws SMIMEException     if the body part encapsulated in the message cannot be extracted.
+     * @throws CMSException       if some other problem occurs.
+     */
+    public SMIMESigned(
+            Part message)
+            throws MessagingException, CMSException, SMIMEException {
+        super(getInputStream(message));
+
+        this.message = message;
+
+        CMSProcessable cont = this.getSignedContent();
+
+        if (cont != null) {
+            byte[] contBytes = (byte[]) cont.getContent();
+
+            this.content = SMIMEUtil.toMimeBodyPart(contBytes);
         }
     }
 

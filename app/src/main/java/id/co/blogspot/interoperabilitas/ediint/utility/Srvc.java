@@ -5,6 +5,7 @@ import android.net.Uri;
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
 import org.spongycastle.asn1.nist.NISTObjectIdentifiers;
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.spongycastle.cert.jcajce.JcaCertStore;
 import org.spongycastle.cms.RecipientInfoGenerator;
 import org.spongycastle.cms.SignerInfoGenerator;
 import org.spongycastle.cms.SignerInformation;
@@ -15,9 +16,7 @@ import org.spongycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 import org.spongycastle.mail.smime.SMIMEEnvelopedGenerator;
 import org.spongycastle.mail.smime.SMIMESigned;
 import org.spongycastle.mail.smime.SMIMESignedGenerator;
-import org.spongycastle.mail.smime.SMIMESignedParser;
 import org.spongycastle.operator.OutputEncryptor;
-import org.spongycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.spongycastle.util.encoders.Base64;
 
 import java.io.ByteArrayOutputStream;
@@ -30,6 +29,7 @@ import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -117,14 +117,25 @@ public class Srvc {
             gen.addSignerInfoGenerator(signer);
             //secara default, content-transfer-encoding base64
             //gen.setContentTransferEncoding("base64");
-            MimeMultipart aSignedData = gen.generate(new MimeBodyPart(ih, content));
+            MimeBodyPart aTmpBody = null;
+            SMIMESigned signedData = null;
+            if (alamatKepabeanan.endsWith("as2-asp.net-core-2.0-web-api")) {
+                ArrayList<X509Certificate> certList = new ArrayList<>();
+                certList.add(senderPublicKey);
+                JcaCertStore jcaCertStore = new JcaCertStore(certList);
+                gen.addCertificates(jcaCertStore);
+                aTmpBody = gen.generateEncapsulated(new MimeBodyPart(ih, content));
+                signedData = new SMIMESigned(aTmpBody);
+            } else {
+                MimeMultipart aSignedData = gen.generate(new MimeBodyPart(ih, content));
+                signedData = new SMIMESigned(aSignedData);
+                aTmpBody = new MimeBodyPart();
+                aTmpBody.setContent(aSignedData);
+                aTmpBody.setHeader("Content-Type", aSignedData.getContentType());
+            }
             // Calculate MIC after sign was handled, because the
             // message data might change if compression before signing is active.
-            String calcMIC = calculateAndStoreMIC(new SMIMESigned(aSignedData).getContent(), micAlg);
-
-            MimeBodyPart aTmpBody = new MimeBodyPart();
-            aTmpBody.setContent(aSignedData);
-            aTmpBody.setHeader("Content-Type", aSignedData.getContentType());
+            String calcMIC = calculateAndStoreMIC(signedData.getContent(), micAlg);
             OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(contentEncryptionOID).setProvider("SC").build();
 
             SMIMEEnvelopedGenerator encgen = new SMIMEEnvelopedGenerator();
@@ -181,10 +192,7 @@ public class Srvc {
             os.flush();
             os.close();
             MimeMultipart body = (MimeMultipart) con.getContent();
-            SMIMESignedParser smp = new SMIMESignedParser(new JcaDigestCalculatorProviderBuilder().setProvider("SC")
-                    .build(), body);
-            MimeBodyPart mbp = smp.getContent();
-            MimeMultipart aReportParts = new MimeMultipart(mbp.getDataHandler().getDataSource());
+            MimeMultipart aReportParts = new MimeMultipart(body.getBodyPart(0).getDataHandler().getDataSource());
             StringBuilder sb = new StringBuilder("<h5>Pesan</h5><p>");
             BodyPart ksg = aReportParts.getBodyPart(0);
             sb.append(ksg.getContent());
@@ -198,10 +206,10 @@ public class Srvc {
             sb.append("<h5>Digest remote</h5><p>");
             sb.append(ihir.getHeader("Received-Content-MIC")[0]);
             sb.append("</p><hr>");
-            SignerInformationStore signers = smp.getSignerInfos();
+            SignerInformationStore signers = new SMIMESigned(body).getSignerInfos();
             SignerInformation signeri = signers.getSigners().iterator().next();
             boolean hasil = signeri.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("SC").build(recipientPublicKey.getPublicKey()));
-            if (!hasil)
+            if (!hasil && !alamatKepabeanan.endsWith("as2-asp.net-core-2.0-web-api"))
                 throw new RuntimeException("TTD tidak valid");
             return sb.toString();
         });

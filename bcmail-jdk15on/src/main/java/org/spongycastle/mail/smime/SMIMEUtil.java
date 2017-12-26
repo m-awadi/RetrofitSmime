@@ -3,6 +3,7 @@ package org.spongycastle.mail.smime;
 import org.spongycastle.mail.smime.util.CRLFOutputStream;
 import org.spongycastle.util.Strings;
 
+import java.io.ByteArrayInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +12,7 @@ import java.util.Enumeration;
 
 import javax.mail.BodyPart;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.ContentType;
 import javax.mail.internet.MimeBodyPart;
@@ -177,7 +179,14 @@ public class SMIMEUtil {
             String contentTransferEncoding;
 
             if (isMultipartContent(mimePart)) {
-                MimeMultipart mp = (MimeMultipart) bodyPart.getContent();
+                Object content = bodyPart.getContent();
+                Multipart mp;
+                if (content instanceof Multipart) {
+                    mp = (Multipart) content;
+                } else {
+                    mp = new MimeMultipart(bodyPart.getDataHandler().getDataSource());
+                }
+
                 ContentType contentType = new ContentType(mp.getContentType());
                 String boundary = "--" + contentType.getParameter("boundary");
 
@@ -337,6 +346,29 @@ public class SMIMEUtil {
             }
         }
     }
+
+    /**
+     * return the MimeBodyPart described in the raw bytes provided in content
+     */
+    public static MimeBodyPart toMimeBodyPart(
+            byte[] content)
+            throws SMIMEException {
+        return toMimeBodyPart(new ByteArrayInputStream(content));
+    }
+
+    /**
+     * return the MimeBodyPart described in the input stream content
+     */
+    public static MimeBodyPart toMimeBodyPart(
+            InputStream content)
+            throws SMIMEException {
+        try {
+            return new MimeBodyPart(content);
+        } catch (MessagingException e) {
+            throw new SMIMEException("exception creating body part.", e);
+        }
+    }
+
 
     static class Base64CRLFOutputStream extends FilterOutputStream {
         protected static byte newline[];

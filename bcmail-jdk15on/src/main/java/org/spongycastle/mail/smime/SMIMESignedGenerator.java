@@ -30,6 +30,7 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.internet.ContentType;
 import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 /**
@@ -74,6 +75,7 @@ public class SMIMESignedGenerator
     public static final Map RFC5751_MICALGS;
     public static final Map STANDARD_MICALGS;
     private static final String DETACHED_SIGNATURE_TYPE = "application/pkcs7-signature; name=smime.p7s; smime-type=signed-data";
+    private static final String ENCAPSULATED_SIGNED_CONTENT_TYPE = "application/pkcs7-mime; name=smime.p7m; smime-type=signed-data";
 
     static {
         AccessController.doPrivileged(new PrivilegedAction() {
@@ -162,6 +164,12 @@ public class SMIMESignedGenerator
     public void addSignerInfoGenerator(SignerInfoGenerator sigInfoGen) {
         signerInfoGens.add(sigInfoGen);
     }
+
+    public void addCertificates(
+            Store certStore) {
+        certStores.add(certStore);
+    }
+
 
     private void addHashHeader(
             StringBuffer header,
@@ -257,11 +265,59 @@ public class SMIMESignedGenerator
         }
     }
 
+    /*
+     * at this point we expect our body part to be well defined - generate with data in the signature
+     */
+    private MimeBodyPart makeEncapsulated(
+            MimeBodyPart content)
+            throws SMIMEException {
+        try {
+            MimeBodyPart sig = new MimeBodyPart();
+
+            sig.setContent(new ContentSigner(content, true), ENCAPSULATED_SIGNED_CONTENT_TYPE);
+            sig.addHeader("Content-Type", ENCAPSULATED_SIGNED_CONTENT_TYPE);
+            sig.addHeader("Content-Disposition", "attachment; filename=\"smime.p7m\"");
+            sig.addHeader("Content-Description", "S/MIME Cryptographic Signed Data");
+            sig.addHeader("Content-Transfer-Encoding", encoding);
+
+            return sig;
+        } catch (MessagingException e) {
+            throw new SMIMEException("exception putting body part together.", e);
+        }
+    }
+
+
     public MimeMultipart generate(
             MimeBodyPart content)
             throws SMIMEException {
         return make(makeContentBodyPart(content));
     }
+
+    public MimeMultipart generate(
+            MimeMessage message)
+            throws SMIMEException {
+        try {
+            message.saveChanges();      // make sure we're up to date.
+        } catch (MessagingException e) {
+            throw new SMIMEException("unable to save message", e);
+        }
+
+        return make(makeContentBodyPart(message));
+    }
+
+    /**
+     * generate a signed message with encapsulated content
+     * <p>
+     * Note: doing this is strongly <b>not</b> recommended as it means a
+     * recipient of the message will have to be able to read the signature to read the
+     * message.
+     */
+    public MimeBodyPart generateEncapsulated(
+            MimeBodyPart content)
+            throws SMIMEException {
+        return makeEncapsulated(makeContentBodyPart(content));
+    }
+
 
     private class ContentSigner
             implements SMIMEStreamingProcessor {
@@ -307,7 +363,13 @@ public class SMIMESignedGenerator
                 MimeBodyPart bodyPart)
                 throws IOException, MessagingException {
             if (SMIMEUtil.isMultipartContent(bodyPart)) {
-                Multipart mp = (Multipart) bodyPart.getContent();
+                Object content = bodyPart.getContent();
+                Multipart mp;
+                if (content instanceof Multipart) {
+                    mp = (Multipart) content;
+                } else {
+                    mp = new MimeMultipart(bodyPart.getDataHandler().getDataSource());
+                }
                 ContentType contentType = new ContentType(mp.getContentType());
                 String boundary = "--" + contentType.getParameter("boundary");
 
