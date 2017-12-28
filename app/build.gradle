@@ -8,8 +8,8 @@ android {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
         targetSdkVersion 27
-        versionCode 45
-        versionName "3.8.0"
+        versionCode 46
+        versionName "4.0.0"
     }
 
     compileOptions {
