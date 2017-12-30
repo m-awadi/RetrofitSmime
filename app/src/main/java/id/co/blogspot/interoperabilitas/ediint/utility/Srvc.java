@@ -4,6 +4,7 @@ import android.net.Uri;
 
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
 import org.spongycastle.asn1.nist.NISTObjectIdentifiers;
+import org.spongycastle.asn1.oiw.OIWObjectIdentifiers;
 import org.spongycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.spongycastle.cert.jcajce.JcaCertStore;
 import org.spongycastle.cms.RecipientInfoGenerator;
@@ -65,6 +66,7 @@ public class Srvc {
         //DigestAlgorithmIdentifier
         HashMap<String, ASN1ObjectIdentifier> algoritmaDigest = new HashMap<>();
         algoritmaDigest.put("md5", PKCSObjectIdentifiers.md5);
+        algoritmaDigest.put("sha1", OIWObjectIdentifiers.idSHA1);
         algoritmaDigest.put("sha256", NISTObjectIdentifiers.id_sha256);
         algoritmaDigest.put("sha384", NISTObjectIdentifiers.id_sha384);
         MessageDigest md = MessageDigest.getInstance(algoritmaDigest.get(micAlg).getId(), "SC");//perlu canonicalize
@@ -117,13 +119,13 @@ public class Srvc {
             gen.addSignerInfoGenerator(signer);
             //secara default, content-transfer-encoding base64
             //gen.setContentTransferEncoding("base64");
+            ArrayList<X509Certificate> certList = new ArrayList<>();
+            certList.add(senderPublicKey);
+            JcaCertStore jcaCertStore = new JcaCertStore(certList);
+            gen.addCertificates(jcaCertStore);
             MimeBodyPart aTmpBody = null;
             SMIMESigned signedData = null;
             if (alamatKepabeanan.endsWith("as2-asp.net-core-2.0-web-api")) {
-                ArrayList<X509Certificate> certList = new ArrayList<>();
-                certList.add(senderPublicKey);
-                JcaCertStore jcaCertStore = new JcaCertStore(certList);
-                gen.addCertificates(jcaCertStore);
                 aTmpBody = gen.generateEncapsulated(new MimeBodyPart(ih, content));
                 signedData = new SMIMESigned(aTmpBody);
             } else {

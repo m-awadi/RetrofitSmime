@@ -2,14 +2,14 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 27
-    buildToolsVersion "27.0.2"
+    buildToolsVersion "27.0.3"
 
     defaultConfig {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
         targetSdkVersion 27
-        versionCode 46
-        versionName "4.0.0"
+        versionCode 47
+        versionName "4.1.0"
     }
 
     compileOptions {

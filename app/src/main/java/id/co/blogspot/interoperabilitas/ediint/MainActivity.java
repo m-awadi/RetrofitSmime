@@ -103,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
         //SignatureAlgorithmIdentifier
         //openssl syntax-nya masih pakai RFC3851, blm rfc 5751
         RSA_SIGNING_ALGORITHM.put("md5withRSA", "md5");
+        RSA_SIGNING_ALGORITHM.put("sha1withRSA", "sha1");
+        RSA_SIGNING_ALGORITHM.put("sha1withRSAandMGF1", "sha1");
         RSA_SIGNING_ALGORITHM.put("sha256withRSA", "sha256");
         RSA_SIGNING_ALGORITHM.put("sha384withRSA", "sha384");
         RSA_SIGNING_ALGORITHM.put("sha256withRSAandMGF1", "sha256");
