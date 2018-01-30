@@ -119,13 +119,13 @@ public class Srvc {
             gen.addSignerInfoGenerator(signer);
             //secara default, content-transfer-encoding base64
             //gen.setContentTransferEncoding("base64");
-            ArrayList<X509Certificate> certList = new ArrayList<>();
-            certList.add(senderPublicKey);
-            JcaCertStore jcaCertStore = new JcaCertStore(certList);
-            gen.addCertificates(jcaCertStore);
             MimeBodyPart aTmpBody = null;
             SMIMESigned signedData = null;
             if (alamatKepabeanan.endsWith("as2-asp.net-core-2.0-web-api")) {
+                ArrayList<X509Certificate> certList = new ArrayList<>();
+                certList.add(senderPublicKey);
+                JcaCertStore jcaCertStore = new JcaCertStore(certList);
+                gen.addCertificates(jcaCertStore);
                 aTmpBody = gen.generateEncapsulated(new MimeBodyPart(ih, content));
                 signedData = new SMIMESigned(aTmpBody);
             } else {
