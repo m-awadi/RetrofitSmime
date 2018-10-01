@@ -1,10 +1,10 @@
 package id.co.blogspot.interoperabilitas.ediint.utility;
 
-import android.support.annotation.NonNull;
-
 import com.nononsenseapps.filepicker.FilePickerFragment;
 
 import java.io.File;
+
+import androidx.annotation.NonNull;
 
 /**
  * Created by dawud_tan on 11/11/16.

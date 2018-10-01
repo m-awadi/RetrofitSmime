@@ -30,3 +30,16 @@
 -keep class javax.mail.** {*;}
 -keep class javax.activation.** {*;}
 -keep class com.sun.mail.handlers.** {*;}
+-keep class com.startapp.** {
+      *;
+}
+
+-keep class com.truenet.** {
+      *;
+}
+
+-keepattributes Exceptions, InnerClasses, Signature, Deprecated, SourceFile, LineNumberTable, *Annotation*, EnclosingMethod
+-dontwarn android.webkit.JavascriptInterface
+-dontwarn com.startapp.**
+
+-dontwarn org.jetbrains.annotations.**

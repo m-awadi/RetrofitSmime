@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion "27.0.3"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
 
     defaultConfig {
         applicationId "id.co.blogspot.datacomlink.ediint"
         minSdkVersion 19
-        targetSdkVersion 27
-        versionCode 48
-        versionName "4.2.0"
+        targetSdkVersion 28
+        versionCode 49
+        versionName "4.3.0"
     }
 
     compileOptions {
@@ -32,13 +32,15 @@ android {
 }
 
 dependencies {
-    api group: 'com.android.support', name: 'appcompat-v7', version: '27.0.2'
-    api group: 'com.android.support', name: 'design', version: '27.0.2'
-    api group: 'com.google.firebase', name: 'firebase-ads', version: '11.8.0'
-    api group: 'org.apache.commons', name: 'commons-csv', version: '1.5'//rfc 4180
-    api group: 'com.nononsenseapps', name: 'filepicker', version: '4.1.0'
+    api group: 'androidx.appcompat', name: 'appcompat', version: '1.0.0'
+    api group: 'androidx.annotation', name: 'annotation', version: '1.0.0'
+    api group: 'androidx.coordinatorlayout', name: 'coordinatorlayout', version: '1.0.0'
+    api group: 'com.google.android.material', name: 'material', version: '1.0.0'
+    api group: 'com.startapp', name: 'inapp-sdk', version: '3.10.1'
+    api group: 'org.apache.commons', name: 'commons-csv', version: '1.6'//rfc 4180
+    api group: 'com.nononsenseapps', name: 'filepicker', version: '4.2.1'
     api group: 'com.madgag.spongycastle', name: 'prov', version: '1.58.0.0'
-    api group: 'com.sun.mail', name: 'android-mail', version: '1.6.0'
+    api group: 'com.sun.mail', name: 'android-mail', version: '1.6.2'
     api project(':bcmail-jdk15on')//S/MIME v.3.1 rfc 3851
 }
 apply plugin: 'com.google.gms.google-services'

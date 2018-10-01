@@ -1,11 +1,12 @@
 package id.co.blogspot.interoperabilitas.ediint.utility;
 
-import android.support.annotation.Nullable;
 
 import com.nononsenseapps.filepicker.AbstractFilePickerActivity;
 import com.nononsenseapps.filepicker.AbstractFilePickerFragment;
 
 import java.io.File;
+
+import androidx.annotation.Nullable;
 
 /**
  * Created by dawud_tan on 11/11/16.

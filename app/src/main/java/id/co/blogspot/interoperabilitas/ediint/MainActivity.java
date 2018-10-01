@@ -4,9 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.design.widget.CoordinatorLayout;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
+
 import android.util.JsonReader;
 import android.util.Xml;
 import android.view.View;
@@ -14,10 +12,11 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.MobileAds;
+
+import com.google.android.material.snackbar.Snackbar;
 import com.nononsenseapps.filepicker.FilePickerActivity;
+import com.startapp.android.publish.adsCommon.StartAppAd;
+import com.startapp.android.publish.adsCommon.StartAppSDK;
 
 import org.apache.commons.csv.CSVFormat;
 import org.spongycastle.asn1.ASN1ObjectIdentifier;
@@ -42,6 +41,8 @@ import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.concurrent.Future;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import id.co.blogspot.interoperabilitas.ediint.utility.MyPickerActivity;
 import id.co.blogspot.interoperabilitas.ediint.utility.NoDefaultSpinner;
 import id.co.blogspot.interoperabilitas.ediint.utility.PemUtils;
@@ -188,9 +189,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //iklan
-        MobileAds.initialize(this, "ca-app-pub-9974637005790818~8733239689");
-        AdView mAdView = findViewById(R.id.adView);
-        mAdView.loadAd(new AdRequest.Builder().build());
+        StartAppSDK.init(this, "209924074", false);
+        StartAppSDK.setUserConsent (this,
+                "pas",
+                System.currentTimeMillis(),
+                false);
+        StartAppAd.disableSplash();
+        StartAppAd.disableAutoInterstitial();
         //iklan
 
         //inisialisasi
